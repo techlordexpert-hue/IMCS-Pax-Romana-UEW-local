@@ -7,6 +7,8 @@
 <meta name="theme-color" content="#1a1750">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><circle cx='50' cy='50' r='48' fill='%231a1750'/><path d='M44 18h12v26h26v12H56v28H44V56H18V44h26z' fill='%23f7e33a'/></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://www.youtube-nocookie.com">
+<link rel="preconnect" href="https://i.ytimg.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" defer></script>
@@ -66,7 +68,7 @@ h1,h2,h3{font-family:var(--display);line-height:1.08;margin:0;color:var(--navy-9
 
 /* ---------- Hero ---------- */
 .hero{position:relative;min-height:100svh;display:grid;place-items:center;text-align:center;color:#fff;overflow:hidden;isolation:isolate;padding:6.5rem 1.25rem 6rem;background:var(--navy-950)}
-.hero-glass{position:absolute;inset:-20%;z-index:-5;background:
+.hero-glass{position:absolute;inset:-20%;z-index:-6;background:
   radial-gradient(38% 40% at 22% 28%,rgba(79,195,234,.55),transparent 70%),
   radial-gradient(34% 36% at 80% 22%,rgba(247,227,58,.28),transparent 70%),
   radial-gradient(45% 45% at 65% 82%,rgba(63,107,181,.75),transparent 70%),
@@ -192,17 +194,47 @@ footer.site .brand{color:#fff}
 .status-check .row{display:flex;gap:.5rem}
 .status-check input{flex:1;min-width:0;border:1.5px solid var(--line);border-radius:12px;padding:.7rem .9rem}
 
-/* ---------- Help ---------- */
-.help-fab{position:fixed;right:1.1rem;bottom:1.1rem;z-index:60;width:58px;height:58px;border-radius:50%;background:var(--navy-900);color:var(--sun);border:0;cursor:pointer;display:grid;place-items:center;box-shadow:0 8px 24px rgba(13,11,51,.45),0 0 0 3px rgba(247,227,58,.35)}
-.help-fab:hover{background:var(--navy-700)}
-.help-fab svg{width:28px;height:28px}
-.help-fab::after{content:"Help";position:absolute;right:66px;background:var(--ink);color:#fff;font-size:.78rem;padding:.2rem .6rem;border-radius:8px;opacity:0;transform:translateX(6px);transition:.2s;pointer-events:none;white-space:nowrap}
-.help-fab:hover::after{opacity:1;transform:none}
-.help-panel{position:fixed;right:1.1rem;bottom:5.4rem;z-index:61;width:min(380px,calc(100vw - 2rem));max-height:calc(100dvh - 7.5rem);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 50px rgba(13,11,51,.3);padding:1.1rem 1.2rem}
-.help-panel h3{font-size:1.5rem;margin-bottom:.15rem}
+/* ---------- Assistant (help) ---------- */
+.assist{position:fixed;right:1rem;bottom:1rem;z-index:60;display:flex;flex-direction:column;align-items:center;gap:.4rem;animation:bob 3.6s ease-in-out infinite}
+.assist-tag{background:var(--navy-900);color:var(--sun);font-size:.6rem;font-weight:700;letter-spacing:.2em;padding:.3rem .55rem .3rem .75rem;border-radius:999px;box-shadow:0 6px 16px rgba(13,11,51,.35);white-space:nowrap;cursor:pointer;border:1px solid rgba(247,227,58,.45)}
+.help-fab{position:relative;width:58px;height:58px;border-radius:50%;background:linear-gradient(145deg,var(--blue-600),var(--navy-900));color:#fff;border:0;cursor:pointer;display:grid;place-items:center;box-shadow:0 10px 26px rgba(13,11,51,.45),0 0 0 3px rgba(247,227,58,.6);transition:transform .2s}
+.help-fab:hover{transform:scale(1.08)}
+.help-fab::before{content:"";position:absolute;inset:0;border-radius:50%;border:2px solid var(--sky);animation:ring 2.4s ease-out infinite;pointer-events:none}
+.help-fab svg{width:28px;height:28px;animation:wiggle 6s ease-in-out infinite;transform-origin:50% 60%}
+@keyframes bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}
+@keyframes ring{0%{transform:scale(1);opacity:.9}80%,100%{transform:scale(1.75);opacity:0}}
+@keyframes wiggle{0%,86%,100%{transform:rotate(0)}89%{transform:rotate(-14deg)}92%{transform:rotate(12deg)}95%{transform:rotate(-8deg)}98%{transform:rotate(4deg)}}
+@keyframes panelIn{from{opacity:0;transform:translateY(12px) scale(.94)}to{opacity:1;transform:none}}
+.help-panel{position:fixed;right:1rem;bottom:8.2rem;z-index:61;width:min(380px,calc(100vw - 2rem));max-height:calc(100dvh - 10rem);overflow:auto;background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:0 18px 50px rgba(13,11,51,.3);padding:1.1rem 1.2rem;animation:panelIn .28s cubic-bezier(.2,.9,.3,1.2) both;transform-origin:bottom right}
 .help-panel p.s{color:var(--muted);font-size:.88rem;margin:0 0 .8rem}
 .help-panel .field{margin-bottom:.7rem}
 .help-panel .close{position:absolute;right:.7rem;top:.6rem;background:none;border:0;font-size:1.5rem;cursor:pointer;color:var(--muted)}
+.hp-head{display:flex;align-items:center;gap:.7rem;margin:0 1.6rem .8rem 0}
+.hp-av{width:40px;height:40px;border-radius:50%;background:var(--navy-900);color:var(--sun);display:grid;place-items:center;flex:none}
+.hp-head b{letter-spacing:.2em;font-size:.8rem;color:var(--navy-900);display:block}
+.hp-head small{color:var(--muted);font-size:.8rem}
+.hp-bubble{background:var(--blue-50);border-radius:14px 14px 14px 4px;padding:.7rem .9rem;font-size:.9rem;margin-bottom:.9rem}
+
+/* ---------- Hero poster + news chip, updates ---------- */
+.hero-poster{position:absolute;inset:0;z-index:-5;background:center/cover no-repeat;opacity:0;transition:opacity 1.2s ease}
+.hero-poster.on{opacity:1}
+.hero-news{position:absolute;bottom:4.2rem;left:50%;transform:translateX(-50%);max-width:min(92vw,540px);display:flex;align-items:center;gap:.6rem;padding:.5rem 1rem;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.35);backdrop-filter:blur(8px);color:#fff;text-decoration:none;font-size:.86rem;white-space:nowrap;overflow:hidden}
+.hero-news b{color:var(--sun);letter-spacing:.14em;font-size:.66rem;text-transform:uppercase;flex:none}
+.hero-news span{overflow:hidden;text-overflow:ellipsis}
+.upd-head{display:flex;align-items:center;gap:.8rem;flex-wrap:wrap;margin-bottom:1.2rem}
+.upd-head h2{font-size:clamp(1.9rem,4vw,2.5rem)}
+.live{display:inline-flex;align-items:center;gap:.4rem;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--blue-700);background:var(--blue-100);padding:.3rem .7rem;border-radius:999px}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--sky);animation:pulseDot 1.6s infinite}
+@keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(79,195,234,.7)}100%{box-shadow:0 0 0 9px rgba(79,195,234,0)}}
+@keyframes slideIn{from{opacity:0;transform:translateY(-14px);background:var(--sky-100)}to{opacity:1;transform:none}}
+.upd{background:#fff;border:1px solid var(--line);border-left:4px solid var(--blue-600);border-radius:14px;padding:1rem 1.2rem;margin-bottom:.8rem}
+.upd.pin{border-left-color:var(--sun);background:linear-gradient(90deg,var(--sun-soft),#fff 45%)}
+.upd.fresh{animation:slideIn .8s cubic-bezier(.2,.8,.2,1)}
+.upd h3{font-size:1.5rem;margin-bottom:.2rem}
+.upd p{margin:.2rem 0 .5rem;white-space:pre-wrap;word-break:break-word;color:#2a2a4d}
+.upd small{color:var(--muted)}
+.upd .tagp{display:inline-block;font-size:.66rem;letter-spacing:.12em;text-transform:uppercase;font-weight:700;padding:.1rem .5rem;border-radius:999px;background:var(--navy-900);color:var(--sun);margin-right:.4rem}
+.upd .tagn{background:var(--sky);color:var(--navy-950)}
 
 /* ---------- Admin ---------- */
 .admin-wrap{max-width:1240px;margin:0 auto;padding:1.2rem clamp(.8rem,3vw,2rem) 4rem}
@@ -260,6 +292,18 @@ td.num,th.num{text-align:right;white-space:nowrap}
 .toast{position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%);background:var(--ink);color:#fff;padding:.7rem 1.2rem;border-radius:999px;z-index:200;font-size:.92rem;box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .demo-banner{background:var(--sun-soft);color:#5d5100;border:1px solid #efe08a;border-radius:12px;padding:.7rem 1rem;font-size:.86rem;margin-bottom:1rem}
 
+/* ---------- Admin extras ---------- */
+.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--blue-50);border:1px solid var(--line);border-radius:999px;padding:4px;margin-bottom:1.2rem}
+.seg button{border:0;background:none;padding:.6rem .5rem;border-radius:999px;font-weight:600;color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--navy-900);color:var(--sun)}
+.set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem}
+.set-card{margin:0;max-width:none}
+.set-card h3{font-size:1.5rem;margin-bottom:.4rem}
+.set-card .row{display:flex;justify-content:space-between;gap:.6rem;padding:.5rem 0;border-bottom:1px solid var(--line);font-size:.92rem}
+.set-card .btns{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:.9rem}
+.role-banner{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.5rem}
+.login-card .btn-ghost.back{margin-top:.8rem}
+
 @media (max-width:760px){
   .lead-grid{grid-template-columns:1fr}
   .arch{order:-1;width:min(240px,70%)}
@@ -283,6 +327,7 @@ td.num,th.num{text-align:right;white-space:nowrap}
 <div id="view-home" class="view">
   <header class="hero">
     <div class="hero-glass"></div>
+    <div class="hero-poster" id="heroPoster"></div>
     <div class="hero-video" id="heroVideo"></div>
     <canvas id="motes"></canvas>
     <div class="hero-shade"></div>
@@ -306,8 +351,13 @@ td.num,th.num{text-align:right;white-space:nowrap}
         <a class="btn btn-glass" href="#/dues">Pay annual dues</a>
       </div>
     </div>
+    <a class="hero-news hidden" id="heroNews" href="#updates"></a>
     <a class="scroll-hint" href="#about">Discover</a>
   </header>
+
+  <section class="band hidden" id="updates" style="padding-bottom:0">
+    <div class="wrap"><div class="upd-head"><span class="live"><i></i>Live</span><h2>Latest updates</h2></div><div id="updList"></div></div>
+  </section>
 
   <section class="band" id="about">
     <div class="wrap lead-grid">
@@ -375,9 +425,12 @@ td.num,th.num{text-align:right;white-space:nowrap}
 </div>
 
 <!-- ================= HELP (floating) ================= -->
-<button class="help-fab" id="helpFab" aria-label="Get help or send a complaint" aria-expanded="false">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="M4.9 4.9l4.3 4.3M14.8 14.8l4.3 4.3M19.1 4.9l-4.3 4.3M9.2 14.8l-4.3 4.3"/></svg>
-</button>
+<div class="assist" id="assist">
+  <span class="assist-tag" id="assistTag">ASSISTANT</span>
+  <button class="help-fab" id="helpFab" aria-label="Assistant: get help or send a complaint" aria-expanded="false">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/><circle cx="8.5" cy="11.5" r=".6" fill="currentColor"/><circle cx="12" cy="11.5" r=".6" fill="currentColor"/><circle cx="15.5" cy="11.5" r=".6" fill="currentColor"/></svg>
+  </button>
+</div>
 <div class="help-panel hidden" id="helpPanel" role="dialog" aria-label="Help and complaints"></div>
 
 <script>
@@ -391,6 +444,7 @@ const CFG = {
 
   // Only used in DEMO mode. In live mode the password is set inside the Apps Script.
   DEMO_ADMIN_PASSWORD: "imcs2026",
+  DEMO_FINANCE_PASSWORD: "finance2026",
 
   // YouTube video ID for the home page background ("" to disable)
   HERO_VIDEO_ID: "_9D0DYwaojU",
@@ -488,6 +542,11 @@ const Store = {
 const uid = p=>p+"-"+Date.now().toString(36).toUpperCase().slice(-5)+Math.random().toString(36).slice(2,5).toUpperCase();
 
 async function api(action,payload={}){
+  if("password" in payload && !payload.role) payload={...payload,role:adm.role||"admin"};
+  try{ return await rawApi(action,payload); }
+  catch(e){ if(adm.pw && /suspended/i.test(e.message)) signOut(e.message); throw e; }
+}
+async function rawApi(action,payload={}){
   if(LIVE){
     let r;
     try{ r = await fetch(CFG.API_URL,{method:"POST",body:JSON.stringify({action,...payload})}); }
@@ -498,10 +557,24 @@ async function api(action,payload={}){
   }
   return demoApi(action,payload);
 }
+function demoAuth(){ try{ const a=JSON.parse(localStorage.getItem("imcs_auth")||"null"); if(a) return a; }catch(e){} return {adminPw:CFG.DEMO_ADMIN_PASSWORD,fin:{pw:CFG.DEMO_FINANCE_PASSWORD,suspended:false,canDelete:true,lastLogin:""}}; }
+function saveDemoAuth(a){ try{ localStorage.setItem("imcs_auth",JSON.stringify(a)); }catch(e){} }
 async function demoApi(action,p){
   await new Promise(r=>setTimeout(r,300));
-  const S={Members:Store.get("members"),Dues:Store.get("dues"),Help:Store.get("help"),Ledger:Store.get("ledger"),Debts:Store.get("debts")};
-  const needAdmin=()=>{ if(p.password!==CFG.DEMO_ADMIN_PASSWORD) throw new Error("Wrong password."); };
+  const S={Members:Store.get("members"),Dues:Store.get("dues"),Help:Store.get("help"),Ledger:Store.get("ledger"),Debts:Store.get("debts"),Updates:Store.get("updates")};
+  const A=demoAuth(), PUB=["register","dues","duesStatus","help","updatesList"];
+  let role=null;
+  if(!PUB.includes(action)){
+    if((p.role||"admin")==="finance"){
+      if(A.fin.suspended) throw new Error("Finance access is suspended. Contact the admin.");
+      if(p.password!==A.fin.pw) throw new Error("Wrong password.");
+      role="finance";
+      if(!["adminLogin","adminList","adminAdd","adminUpdate","adminDelete","changePassword"].includes(action)) throw new Error("Not allowed.");
+      if(action==="adminAdd"&&!["Ledger","Debts"].includes(p.sheet)) throw new Error("Not allowed.");
+      if(action==="adminUpdate"&&p.sheet!=="Debts") throw new Error("Not allowed.");
+      if(action==="adminDelete"&&(!["Ledger","Debts"].includes(p.sheet)||!A.fin.canDelete)) throw new Error("You do not have permission to delete.");
+    } else { if(p.password!==A.adminPw) throw new Error("Wrong password."); role="admin"; }
+  }
   const save=name=>Store.set(name.toLowerCase(),S[name]);
   const addMember=m=>{
     if(S.Members.some(x=>normPhone(x.phone)===normPhone(m.phone))) throw new Error("This phone number is already registered.");
@@ -509,17 +582,23 @@ async function demoApi(action,p){
     const id="IMCS-UEW-"+new Date().getFullYear()+"-"+String(S.Members.length+1).padStart(4,"0");
     const rec={id,createdAt:new Date().toISOString(),...m}; S.Members.push(rec); save("Members"); return rec;
   };
+  const perms={canDelete:!!A.fin.canDelete};
   switch(action){
     case "register": return {ok:true,id:addMember(p.member).id};
     case "dues": { const rec={id:"RCP-"+new Date().getFullYear()+"-"+String(S.Dues.length+1).padStart(4,"0"),createdAt:new Date().toISOString(),status:"Pending",...p.dues}; S.Dues.push(rec); save("Dues"); return {ok:true,id:rec.id}; }
     case "duesStatus": { const d=S.Dues.find(x=>x.id.toLowerCase()===String(p.id||"").trim().toLowerCase()); if(!d) throw new Error("No payment found with that receipt number."); return {ok:true,status:d.status,fullName:d.fullName,amount:d.amount,paidOn:d.paidOn}; }
     case "help": { const rec={id:uid("H"),createdAt:new Date().toISOString(),status:"New",...p.help}; S.Help.push(rec); save("Help"); return {ok:true,id:rec.id}; }
-    case "adminLogin": needAdmin(); return {ok:true};
-    case "adminList": needAdmin(); return {ok:true,members:S.Members,dues:S.Dues,help:S.Help,ledger:S.Ledger,debts:S.Debts};
-    case "adminAddMember": needAdmin(); return {ok:true,id:addMember({...p.member,source:"Admin"}).id};
-    case "adminAdd": { needAdmin(); const rec={id:uid(p.sheet==="Ledger"?"L":"DB"),createdAt:new Date().toISOString(),...p.record}; S[p.sheet].push(rec); save(p.sheet); return {ok:true,id:rec.id}; }
-    case "adminUpdate": { needAdmin(); const arr=S[p.sheet]; const i=arr.findIndex(x=>x.id===p.id); if(i<0) throw new Error("Record not found."); arr[i]={...arr[i],...p.patch}; save(p.sheet); return {ok:true}; }
-    case "adminDelete": { needAdmin(); S[p.sheet]=S[p.sheet].filter(x=>x.id!==p.id); save(p.sheet); return {ok:true}; }
+    case "updatesList": return {ok:true,updates:[...S.Updates].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,20)};
+    case "adminLogin": if(role==="finance"){ A.fin.lastLogin=new Date().toISOString(); saveDemoAuth(A); } return {ok:true,role,perms};
+    case "adminList":
+      if(role==="finance") return {ok:true,role,perms,ledger:S.Ledger,debts:S.Debts,duesConfirmed:S.Dues.filter(d=>d.status==="Confirmed").reduce((t,d)=>t+(Number(d.amount)||0),0)};
+      return {ok:true,role,members:S.Members,dues:S.Dues,help:S.Help,ledger:S.Ledger,debts:S.Debts,updates:S.Updates,financeAccess:{suspended:!!A.fin.suspended,canDelete:!!A.fin.canDelete,lastLogin:A.fin.lastLogin}};
+    case "adminAddMember": return {ok:true,id:addMember({...p.member,source:"Admin"}).id};
+    case "adminAdd": { const rec={id:uid(p.sheet==="Ledger"?"L":p.sheet==="Debts"?"DB":"U"),createdAt:new Date().toISOString(),...p.record}; S[p.sheet].push(rec); save(p.sheet); return {ok:true,id:rec.id}; }
+    case "adminUpdate": { const arr=S[p.sheet]; const i=arr.findIndex(x=>x.id===p.id); if(i<0) throw new Error("Record not found."); arr[i]={...arr[i],...p.patch}; save(p.sheet); return {ok:true}; }
+    case "adminDelete": { S[p.sheet]=S[p.sheet].filter(x=>x.id!==p.id); save(p.sheet); return {ok:true}; }
+    case "changePassword": { if(String(p.newPassword||"").length<8) throw new Error("Use at least 8 characters."); if(role==="admin") A.adminPw=p.newPassword; else A.fin.pw=p.newPassword; saveDemoAuth(A); return {ok:true}; }
+    case "adminFinanceSet": { const q=p.patch||{}; if("suspended" in q) A.fin.suspended=!!q.suspended; if("canDelete" in q) A.fin.canDelete=!!q.canDelete; if(q.newPassword){ if(String(q.newPassword).length<8) throw new Error("Use at least 8 characters."); A.fin.pw=q.newPassword; } saveDemoAuth(A); return {ok:true}; }
   }
   throw new Error("Unknown action");
 }
@@ -712,11 +791,11 @@ function renderDues(){
         <div><span>Name</span><b>${esc(d.fullName)}</b></div><div><span>MoMo number</span><b>${esc(d.phone)}</b></div>
         <div><span>Date</span><b>${fmtDate(d.paidOn)}</b></div><div><span>Amount</span><b>${money(d.amount)}</b></div>
         <div><span>Status</span><b>Pending confirmation</b></div></div>
+      <div class="alert info" style="text-align:left">Keep your receipt number <b>${esc(d.id)}</b>. The admin will confirm your payment and issue your official receipt.</div>
       <div class="alert info" style="text-align:left">If your phone did not open the dialer, tap <b>Dial *170#</b> below, choose <b>Send money</b>, and pay <b>${esc(CFG.FINANCE_MOMO_NUMBER)}</b> (${esc(CFG.FINANCE_MOMO_NAME)}).</div>
       <div style="display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center;margin-top:1rem">
-        <button class="btn btn-primary" id="rcpt" type="button">Download receipt (PDF)</button>${dialBtn("btn-ghost")}
+        ${dialBtn("btn-primary")}
         <a class="btn btn-ghost" href="#/" id="duesHome">Home</a></div></div>`;
-    $("#rcpt").onclick=()=>downloadReceipt(d);
     $("#duesHome").onclick=()=>{ dues.done=null; dues.data=null; };
     return;
   }
@@ -727,7 +806,7 @@ function renderDues(){
   }
   card.innerHTML=`<div class="card-head"><h1>Pay annual dues</h1><p>Fill in four details, then dial *170# to pay.</p></div>
     ${fin}
-    <div class="how"><div><b>1. Fill in</b>your details below</div><div><b>2. Tap the button</b>details go to the admin and *170# opens</div><div><b>3. Get your receipt</b>download it as a PDF</div></div>
+    <div class="how"><div><b>1. Fill in</b>your details below</div><div><b>2. Tap the button</b>details go to the admin and *170# opens</div><div><b>3. Get confirmed</b>the admin confirms and issues your receipt</div></div>
     <div id="duesFields">${DUES_KEYS.map(k=>fieldHTML(k,dues.data,DUES_DEFS)).join("")}</div>
     <div id="duesErr"></div>
     <button class="btn btn-primary" id="duesGo" type="button" style="width:100%;padding:1.05rem">Send details &amp; dial *170#</button>
@@ -749,14 +828,15 @@ function renderDues(){
     const id=$("#chkId").value.trim(); if(!id) return; const out=$("#chkOut");
     try{
       const r=await api("duesStatus",{id});
-      out.innerHTML=`<div class="alert info"><b>${esc(r.fullName)}</b> · ${money(r.amount)} · ${fmtDate(r.paidOn)}<br>Status: <b>${r.status==="Confirmed"?"Paid and confirmed ✓":"Pending confirmation by the Finance Secretary"}</b></div>${r.status==="Confirmed"?'<button class="btn btn-primary btn-sm" id="chkRcpt">Download confirmed receipt</button>':""}`;
-      const rb=$("#chkRcpt"); if(rb) rb.onclick=()=>downloadReceipt({id,fullName:r.fullName,phone:"",amount:r.amount,paidOn:r.paidOn,status:"Confirmed",duesType:"Annual dues"});
+      out.innerHTML=`<div class="alert info"><b>${esc(r.fullName)}</b> · ${money(r.amount)} · ${fmtDate(r.paidOn)}<br>Status: <b>${r.status==="Confirmed"?"Paid and confirmed ✓ — ask the admin for your receipt":"Pending confirmation"}</b></div>`;
     }catch(e){ out.innerHTML=`<div class="alert err" role="alert">${esc(e.message)}</div>`; }
   };
 }
 
 /* ---------- PDF receipt ---------- */
 async function downloadReceipt(d){
+  if(adm.role!=="admin"){ toast("Only the admin can issue receipts."); return; }
+  if(d.status!=="Confirmed"){ toast("Confirm the payment first, then issue the receipt."); return; }
   if(!(window.jspdf&&window.jspdf.jsPDF)){ toast("The PDF tool is still loading. Check your connection and try again."); return; }
   try{
     const {jsPDF}=window.jspdf, doc=new jsPDF({unit:"mm",format:"a5"}), W=148;
@@ -779,10 +859,10 @@ async function downloadReceipt(d){
     y+=2; row("Amount","GHS "+(Number(d.amount)||0).toFixed(2),true);
     y+=3;
     doc.setFont("helvetica","bold"); doc.setFontSize(11);
-    if(confirmed){ doc.setDrawColor(43,42,131); doc.setTextColor(43,42,131); doc.setLineWidth(.8); doc.roundedRect(14,y,W-28,12,2,2); doc.text("PAID - CONFIRMED BY FINANCE SECRETARY",W/2,y+7.5,{align:"center"}); }
+    if(true){ doc.setDrawColor(43,42,131); doc.setTextColor(43,42,131); doc.setLineWidth(.8); doc.roundedRect(14,y,W-28,12,2,2); doc.text("PAID - CONFIRMED BY FINANCE SECRETARY",W/2,y+7.5,{align:"center"}); }
     else { doc.setDrawColor(180,150,0); doc.setTextColor(120,100,0); doc.setLineWidth(.8); doc.roundedRect(14,y,W-28,12,2,2); doc.text("PENDING CONFIRMATION",W/2,y+7.5,{align:"center"}); }
     y+=20; doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(90,95,128);
-    doc.text(doc.splitTextToSize(confirmed?"This receipt confirms that the payment above has been verified by the Finance Secretary.":"This receipt acknowledges the details you submitted. It becomes final once the Finance Secretary confirms the payment. You can check your status on the website with your receipt number.",W-28),14,y);
+    doc.text(doc.splitTextToSize(confirmed?"This receipt confirms that the payment above has been received and verified. Issued by the Admin, IMCS Pax Romana UEW-Local.":"This receipt acknowledges the details you submitted. It becomes final once the Finance Secretary confirms the payment. You can check your status on the website with your receipt number.",W-28),14,y);
     doc.setFontSize(7); doc.text("Issued "+new Date().toLocaleString("en-GB"),W/2,200,{align:"center"});
     await saveFile("IMCS-UEW-Dues-Receipt-"+d.id+".pdf",doc.output("arraybuffer"));
   }catch(e){ toast("Could not create the receipt: "+e.message); }
@@ -798,13 +878,14 @@ const HELP_DEFS={
   message:{label:"Tell us what happened",type:"textarea",required:true,ph:"Describe your problem or complaint"},
 };
 const help={data:{},sent:false};
+const HP_HEAD=`<div class="hp-head"><span class="hp-av"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg></span><div><b>ASSISTANT</b><small>Questions, problems or complaints</small></div></div>`;
 function renderHelp(){
   const p=$("#helpPanel");
   if(help.sent){
-    p.innerHTML=`<button class="close" aria-label="Close help">×</button><h3>Message sent</h3><p class="s">The admin team has your message and will reply using the contact you gave.</p><button class="btn btn-primary btn-sm" id="helpAgain">Send another</button>`;
+    p.innerHTML=`<button class="close" aria-label="Close assistant">×</button>${HP_HEAD}<div class="hp-bubble">Thank you. Your message has reached the admin team, who will reply using the contact you gave.</div><button class="btn btn-primary btn-sm" id="helpAgain">Send another</button>`;
     $(".close",p).onclick=toggleHelp; $("#helpAgain").onclick=()=>{ help.sent=false; help.data={}; renderHelp(); }; return;
   }
-  p.innerHTML=`<button class="close" aria-label="Close help">×</button><h3>How can we help?</h3><p class="s">Send a complaint or question. It goes straight to the admin dashboard.</p>
+  p.innerHTML=`<button class="close" aria-label="Close assistant">×</button>${HP_HEAD}<div class="hp-bubble">Hello! Tell us what you need and the admin team will get back to you.</div>
     <div id="helpFields">${Object.keys(HELP_DEFS).map(k=>fieldHTML(k,help.data,HELP_DEFS)).join("")}</div><div id="helpErr"></div>
     <button class="btn btn-primary" id="helpGo" style="width:100%">Send message</button>`;
   $(".close",p).onclick=toggleHelp;
@@ -825,8 +906,8 @@ function toggleHelp(){
 /* =====================================================================
    Admin
    ===================================================================== */
-const adm={pw:null,tab:"overview",members:[],dues:[],help:[],ledger:[],debts:[],q:"",fLevel:"",fSoc:"",fGender:"",fDues:"",dq:"",dStatus:"",lType:"",timer:null,addData:{}};
-try{ adm.pw=sessionStorage.getItem("imcs_pw"); }catch(e){}
+const adm={pw:null,role:null,perms:{},tab:"overview",members:[],dues:[],help:[],ledger:[],debts:[],updates:[],finAccess:{},duesConfirmed:0,loginRole:"admin",notice:"",q:"",fLevel:"",fSoc:"",fGender:"",fDues:"",dq:"",dStatus:"",lType:"",timer:null,addData:{},updDraft:{}};
+try{ adm.pw=sessionStorage.getItem("imcs_pw"); adm.role=sessionStorage.getItem("imcs_role"); if(!adm.role) adm.pw=null; }catch(e){}
 const num = v=>Number(v)||0;
 const sortNew=(a,b)=>String(b.createdAt).localeCompare(String(a.createdAt));
 
@@ -839,50 +920,74 @@ function duesState(m){ const l=duesFor(m); if(l.some(d=>d.status==="Confirmed"))
 const duesPill=s=>`<span class="pill ${s==="Paid"?"ok":s==="Reported"?"warn":"mute"}">${s}</span>`;
 
 function finance(){
-  const duesIn=adm.dues.filter(d=>d.status==="Confirmed").reduce((s,d)=>s+num(d.amount),0);
+  const duesIn=adm.role==="finance"?num(adm.duesConfirmed):adm.dues.filter(d=>d.status==="Confirmed").reduce((s,d)=>s+num(d.amount),0);
   const otherIn=adm.ledger.filter(l=>l.type==="Income").reduce((s,l)=>s+num(l.amount),0);
   const out=adm.ledger.filter(l=>l.type==="Expense").reduce((s,l)=>s+num(l.amount),0);
   const debt=adm.debts.reduce((s,d)=>s+Math.max(0,num(d.amount)-num(d.paid)),0);
   const balance=duesIn+otherIn-out;
   return {duesIn,otherIn,out,debt,balance,net:balance-debt};
 }
-
+function signOut(msg){
+  adm.pw=null; adm.role=null; adm.notice=msg||""; adm.perms={};
+  try{ sessionStorage.removeItem("imcs_pw"); sessionStorage.removeItem("imcs_role"); }catch(e){}
+  clearInterval(adm.timer); if(!$("#view-admin").classList.contains("hidden")) renderAdmin();
+}
 function renderAdmin(){
-  const root=$("#adminRoot");
+  const root=$("#adminRoot"), home=`<a class="btn btn-ghost btn-sm" href="#/">← Home</a>`;
   if(!adm.pw){
-    $("#adminBarBtns").innerHTML="";
+    $("#adminBarBtns").innerHTML=home;
+    const fin=adm.loginRole==="finance";
     root.innerHTML=`<div class="login-card"><div class="lock"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
-      <h2 style="font-size:2rem">Admin sign in</h2><p style="color:var(--muted);margin:.3rem 0 1.2rem">Enter the admin password to continue.</p>
+      <h2 style="font-size:2rem">Sign in</h2><p style="color:var(--muted);margin:.3rem 0 1.1rem">${fin?"Finance Secretary access to church finances.":"Admin access to the full dashboard."}</p>
+      <div class="seg" role="tablist"><button type="button" data-role="admin" class="${fin?"":"on"}">Admin</button><button type="button" data-role="finance" class="${fin?"on":""}">Finance Secretary</button></div>
+      ${adm.notice?`<div class="alert err" role="alert" style="text-align:left">${esc(adm.notice)}</div>`:""}
       <div class="field" style="text-align:left"><label for="admPw">Password</label><input id="admPw" type="password" autocomplete="current-password"></div>
-      <div id="admErr"></div><button class="btn btn-primary" id="admGo" style="width:100%">Sign in</button></div>`;
+      <div id="admErr"></div><button class="btn btn-primary" id="admGo" style="width:100%">Sign in</button>
+      <a class="btn btn-ghost back" href="#/" style="width:100%">← Return to home</a></div>`;
+    $$(".seg button").forEach(b=>b.onclick=()=>{ adm.loginRole=b.dataset.role; adm.notice=""; renderAdmin(); });
     const go=async()=>{
       const pw=$("#admPw").value; if(!pw) return; const b=$("#admGo"); b.disabled=true; b.textContent="Checking…";
-      try{ await api("adminLogin",{password:pw}); adm.pw=pw; try{sessionStorage.setItem("imcs_pw",pw);}catch(e){} await loadAdmin(); }
-      catch(e){ $("#admErr").innerHTML=`<div class="alert err" role="alert">${esc(e.message)}</div>`; b.disabled=false; b.textContent="Sign in"; }
+      try{
+        const r=await api("adminLogin",{role:adm.loginRole,password:pw});
+        adm.pw=pw; adm.role=r.role; adm.perms=r.perms||{}; adm.notice=""; adm.tab=r.role==="finance"?"finance":"overview";
+        try{ sessionStorage.setItem("imcs_pw",pw); sessionStorage.setItem("imcs_role",r.role); }catch(e){}
+        await loadAdmin();
+      }catch(e){ $("#admErr").innerHTML=`<div class="alert err" role="alert">${esc(e.message)}</div>`; b.disabled=false; b.textContent="Sign in"; }
     };
     $("#admGo").onclick=go; $("#admPw").onkeydown=e=>{ if(e.key==="Enter") go(); }; $("#admPw").focus();
     return;
   }
-  $("#adminBarBtns").innerHTML=`<button class="btn btn-ghost btn-sm" id="admOut">Sign out</button>`;
-  $("#admOut").onclick=()=>{ adm.pw=null; try{sessionStorage.removeItem("imcs_pw");}catch(e){} clearInterval(adm.timer); renderAdmin(); };
+  const isFin=adm.role==="finance";
+  $("#adminBarBtns").innerHTML=`<span style="display:inline-flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end">${home}${isFin?'<button class="btn btn-ghost btn-sm" id="myPw">Change password</button>':""}<button class="btn btn-primary btn-sm" id="admOut">Sign out</button></span>`;
+  $("#admOut").onclick=()=>signOut();
+  if(isFin){
+    $("#myPw").onclick=openMyPassword;
+    root.innerHTML=`<div class="admin-wrap">${LIVE?"":`<div class="demo-banner"><b>Demo mode.</b> Data is stored only in this browser.</div>`}<div class="alert info role-banner"><span>Signed in as <b>Finance Secretary</b>. You can manage church finances only.</span></div><div id="admBody"></div></div>`;
+    admFinance(); return;
+  }
   const newHelp=adm.help.filter(h=>h.status==="New").length, pendDues=adm.dues.filter(d=>d.status!=="Confirmed").length;
-  const tabs=[["overview","Overview"],["members","Members ("+adm.members.length+")"],["add","Register member"],["dues","Dues"+(pendDues?` <span class="badge">${pendDues}</span>`:"")],["finance","Finances"],["help","Help"+(newHelp?` <span class="badge">${newHelp}</span>`:"")]];
+  const tabs=[["overview","Overview"],["members","Members ("+adm.members.length+")"],["add","Register member"],["dues","Dues"+(pendDues?` <span class="badge">${pendDues}</span>`:"")],["finance","Finances"],["updates","Updates"],["help","Help"+(newHelp?` <span class="badge">${newHelp}</span>`:"")],["settings","Settings"]];
   root.innerHTML=`<div class="admin-wrap">
     ${LIVE?"":`<div class="demo-banner"><b>Demo mode.</b> Data is stored only in this browser. Follow SETUP.md to connect the live backend so registrations and dues from every phone reach this dashboard.</div>`}
     <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab ${adm.tab===k?"on":""}" role="tab" data-tab="${k}">${l}</button>`).join("")}</div>
     <div id="admBody"></div></div>`;
   $$(".tab").forEach(t=>t.onclick=()=>{ adm.tab=t.dataset.tab; renderAdmin(); });
-  ({overview:admOverview,members:admMembers,add:admAdd,dues:admDues,finance:admFinance,help:admHelp})[adm.tab]();
+  ({overview:admOverview,members:admMembers,add:admAdd,dues:admDues,finance:admFinance,updates:admUpdates,help:admHelp,settings:admSettings})[adm.tab]();
 }
 async function loadAdmin(quiet){
   try{
     const r=await api("adminList",{password:adm.pw});
-    adm.members=(r.members||[]).sort(sortNew); adm.dues=(r.dues||[]).sort(sortNew); adm.help=(r.help||[]).sort(sortNew);
+    adm.perms=r.perms||adm.perms;
+    if(adm.role==="finance"){ adm.duesConfirmed=r.duesConfirmed||0; adm.members=[]; adm.dues=[]; adm.help=[]; adm.updates=[]; }
+    else {
+      adm.members=(r.members||[]).sort(sortNew); adm.dues=(r.dues||[]).sort(sortNew); adm.help=(r.help||[]).sort(sortNew);
+      adm.updates=(r.updates||[]).sort(sortNew); adm.finAccess=r.financeAccess||{};
+    }
     adm.ledger=(r.ledger||[]).sort((a,b)=>String(b.date||b.createdAt).localeCompare(String(a.date||a.createdAt))); adm.debts=(r.debts||[]).sort(sortNew);
-    clearInterval(adm.timer); adm.timer=setInterval(()=>{ if(location.hash==="#/admin" && !$(".modal-bg") && !["add"].includes(adm.tab) && !document.activeElement?.closest?.(".filters")) loadAdmin(true); },30000);
+    clearInterval(adm.timer); adm.timer=setInterval(()=>{ if(location.hash==="#/admin" && !$(".modal-bg") && !["add","updates","settings"].includes(adm.tab) && !document.activeElement?.closest?.(".filters")) loadAdmin(true); },30000);
     if(!quiet || !$(".modal-bg")) renderAdmin();
   }catch(e){
-    if(/password/i.test(e.message)){ adm.pw=null; try{sessionStorage.removeItem("imcs_pw");}catch(_){} renderAdmin(); }
+    if(/password|suspended/i.test(e.message)) signOut(e.message);
     else if(!quiet) toast(e.message);
   }
 }
@@ -990,6 +1095,7 @@ function admDues(){
   $("#admBody").innerHTML=`<div class="admin-head"><h2>Annual dues</h2><button class="btn btn-primary btn-sm" id="xlD">Export to Excel</button></div>
     <div class="stats"><div class="stat"><b style="font-size:1.8rem;padding:.3rem 0">${money(paidTotal)}</b><span>Confirmed (${adm.dues.filter(d=>d.status==="Confirmed").length} payments)</span></div>
     <div class="stat"><b style="font-size:1.8rem;padding:.3rem 0">${money(pendTotal)}</b><span>Waiting for confirmation (${adm.dues.filter(d=>d.status!=="Confirmed").length})</span></div></div>
+    <div class="alert info">Members cannot download receipts. Confirm a payment after checking MoMo, then use <b>Issue receipt</b> to download the PDF and send it to the member.</div>
     <div class="filters"><input id="dq" type="search" placeholder="Search name, MoMo number or receipt no." value="${esc(adm.dq)}" aria-label="Search dues"><select id="ds" aria-label="Filter by status"><option value="">All statuses</option><option ${adm.dStatus==="Pending"?"selected":""}>Pending</option><option ${adm.dStatus==="Confirmed"?"selected":""}>Confirmed</option></select></div>
     <div id="dTable"></div>`;
   const draw=()=>{
@@ -998,8 +1104,8 @@ function admDues(){
     $("#dTable").innerHTML=list.length?`<div class="tbl-wrap"><table><thead><tr><th>Receipt no.</th><th>Date</th><th>Name</th><th>MoMo number</th><th class="num">Amount</th><th>Status</th><th></th></tr></thead><tbody>${list.map(d=>`<tr>
       <td>${esc(d.id)}</td><td>${fmtDate(d.paidOn)}</td><td><b>${esc(d.fullName)}</b></td><td>${esc(d.phone)}</td><td class="num">${money(d.amount)}</td>
       <td><span class="pill ${d.status==="Confirmed"?"ok":"warn"}">${esc(d.status||"Pending")}</span></td>
-      <td class="acts"><button class="btn ${d.status==="Confirmed"?"btn-ghost":"btn-primary"} btn-sm" data-tog="${esc(d.id)}">${d.status==="Confirmed"?"Mark pending":"Confirm payment"}</button><button class="btn btn-ghost btn-sm" data-rc="${esc(d.id)}">Receipt</button><button class="btn btn-danger btn-sm" data-del="${esc(d.id)}">Delete</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">No dues submitted yet. Payments appear here as soon as members send their details.</div>';
-    $$("[data-tog]").forEach(b=>b.onclick=async()=>{ const d=adm.dues.find(x=>x.id===b.dataset.tog); try{ await api("adminUpdate",{password:adm.pw,sheet:"Dues",id:d.id,patch:{status:d.status==="Confirmed"?"Pending":"Confirmed"}}); loadAdmin(); }catch(e){ toast(e.message); } });
+      <td class="acts">${d.status==="Confirmed"?`<button class="btn btn-primary btn-sm" data-rc="${esc(d.id)}">Issue receipt</button><button class="btn btn-ghost btn-sm" data-tog="${esc(d.id)}">Mark pending</button>`:`<button class="btn btn-primary btn-sm" data-tog="${esc(d.id)}">Confirm payment</button>`}<button class="btn btn-danger btn-sm" data-del="${esc(d.id)}">Delete</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">No dues submitted yet. Payments appear here as soon as members send their details.</div>';
+    $$("[data-tog]").forEach(b=>b.onclick=async()=>{ const d=adm.dues.find(x=>x.id===b.dataset.tog); const to=d.status==="Confirmed"?"Pending":"Confirmed"; try{ await api("adminUpdate",{password:adm.pw,sheet:"Dues",id:d.id,patch:{status:to}}); if(to==="Confirmed") toast("Confirmed. You can now issue the receipt."); loadAdmin(); }catch(e){ toast(e.message); } });
     $$("[data-rc]").forEach(b=>b.onclick=()=>downloadReceipt(adm.dues.find(x=>x.id===b.dataset.rc)));
     $$("[data-del]").forEach(b=>b.onclick=()=>delRecord("Dues",b.dataset.del,"this dues record"));
   };
@@ -1011,7 +1117,7 @@ function admDues(){
 
 /* ---------- Finances (admin) ---------- */
 function admFinance(){
-  const f=finance();
+  const f=finance(), canDel=adm.role==='admin'||!!adm.perms.canDelete;
   const byCat=Object.entries(adm.ledger.filter(l=>l.type==="Expense").reduce((m,l)=>{ m[l.category||"Other"]=(m[l.category||"Other"]||0)+num(l.amount); return m; },{})).sort((a,b)=>b[1]-a[1]);
   const list=adm.ledger.filter(l=>!adm.lType||l.type===adm.lType);
   $("#admBody").innerHTML=`<div class="admin-head"><h2>Church finances</h2><div style="display:flex;gap:.5rem;flex-wrap:wrap"><button class="btn btn-primary btn-sm" id="addExp">Add expense</button><button class="btn btn-ghost btn-sm" id="addInc">Add income</button><button class="btn btn-ghost btn-sm" id="addDebt">Add debt</button><button class="btn btn-ghost btn-sm" id="xlF">Export to Excel</button></div></div>
@@ -1022,14 +1128,14 @@ function admFinance(){
       <div class="stat"><b class="${f.debt>0?"neg":""}" style="font-size:1.8rem;padding:.3rem 0">${money(f.debt)}</b><span>Debt still owed</span></div>
       <div class="stat"><b class="${f.net<0?"neg":""}" style="font-size:1.8rem;padding:.3rem 0">${money(f.net)}</b><span>Balance after clearing debts</span></div>
     </div>
-    <div class="alert info">Balance = confirmed annual dues + other income − expenses. Dues count once you confirm them in the Dues tab.</div>
+    <div class="alert info">Balance = confirmed annual dues + other income − expenses. Dues count once the admin confirms them.</div>
     <div class="charts" style="margin-bottom:1rem">${bars("Expenses by category",byCat,6,money)}</div>
     <div class="section-h"><h3>Debts</h3></div>
     <div id="debtTable"></div>
     <div class="section-h"><h3>Income &amp; expenses</h3><select id="lt" aria-label="Filter ledger" style="border:1.5px solid var(--line);border-radius:10px;padding:.5rem .8rem;background:#fff"><option value="">All entries</option><option ${adm.lType==="Expense"?"selected":""}>Expense</option><option ${adm.lType==="Income"?"selected":""}>Income</option></select></div>
     <div id="ledgerTable"></div>`;
-  $("#debtTable").innerHTML=adm.debts.length?`<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Owed to</th><th>Reason</th><th class="num">Amount</th><th class="num">Paid</th><th class="num">Remaining</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>${adm.debts.map(d=>{ const rem=Math.max(0,num(d.amount)-num(d.paid)); return `<tr><td>${fmtDate(d.date||d.createdAt)}</td><td><b>${esc(d.creditor)}</b></td><td>${esc(d.description)}</td><td class="num">${money(d.amount)}</td><td class="num">${money(d.paid)}</td><td class="num"><b>${money(rem)}</b></td><td>${fmtDate(d.dueDate)||"—"}</td><td><span class="pill ${rem<=0?"ok":"bad"}">${rem<=0?"Cleared":"Owing"}</span></td><td class="acts">${rem>0?`<button class="btn btn-primary btn-sm" data-pay="${esc(d.id)}">Record payment</button>`:""}<button class="btn btn-danger btn-sm" data-deld="${esc(d.id)}">Delete</button></td></tr>`; }).join("")}</tbody></table></div>`:'<div class="empty">No debts recorded. Use “Add debt” when the church owes someone.</div>';
-  $("#ledgerTable").innerHTML=list.length?`<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Paid to / from</th><th class="num">Amount</th><th></th></tr></thead><tbody>${list.map(l=>`<tr><td>${fmtDate(l.date||l.createdAt)}</td><td><span class="pill ${l.type==="Income"?"ok":"warn"}">${esc(l.type)}</span></td><td>${esc(l.category)}</td><td>${esc(l.description)}</td><td>${esc(l.party)||"—"}</td><td class="num"><b>${l.type==="Income"?"+":"−"} ${money(l.amount)}</b></td><td class="acts">${imgSrc(l,"receipt","receiptId")?`<button class="btn btn-ghost btn-sm" data-rec="${esc(l.id)}">Receipt</button>`:""}<button class="btn btn-danger btn-sm" data-delL="${esc(l.id)}">Delete</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">No entries yet. Add your first expense or income above.</div>';
+  $("#debtTable").innerHTML=adm.debts.length?`<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Owed to</th><th>Reason</th><th class="num">Amount</th><th class="num">Paid</th><th class="num">Remaining</th><th>Due</th><th>Status</th><th></th></tr></thead><tbody>${adm.debts.map(d=>{ const rem=Math.max(0,num(d.amount)-num(d.paid)); return `<tr><td>${fmtDate(d.date||d.createdAt)}</td><td><b>${esc(d.creditor)}</b></td><td>${esc(d.description)}</td><td class="num">${money(d.amount)}</td><td class="num">${money(d.paid)}</td><td class="num"><b>${money(rem)}</b></td><td>${fmtDate(d.dueDate)||"—"}</td><td><span class="pill ${rem<=0?"ok":"bad"}">${rem<=0?"Cleared":"Owing"}</span></td><td class="acts">${rem>0?`<button class="btn btn-primary btn-sm" data-pay="${esc(d.id)}">Record payment</button>`:""}${canDel?`<button class="btn btn-danger btn-sm" data-deld="${esc(d.id)}">Delete</button>`:""}</td></tr>`; }).join("")}</tbody></table></div>`:'<div class="empty">No debts recorded. Use “Add debt” when the church owes someone.</div>';
+  $("#ledgerTable").innerHTML=list.length?`<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Category</th><th>Description</th><th>Paid to / from</th><th class="num">Amount</th><th></th></tr></thead><tbody>${list.map(l=>`<tr><td>${fmtDate(l.date||l.createdAt)}</td><td><span class="pill ${l.type==="Income"?"ok":"warn"}">${esc(l.type)}</span></td><td>${esc(l.category)}</td><td>${esc(l.description)}</td><td>${esc(l.party)||"—"}</td><td class="num"><b>${l.type==="Income"?"+":"−"} ${money(l.amount)}</b></td><td class="acts">${imgSrc(l,"receipt","receiptId")?`<button class="btn btn-ghost btn-sm" data-rec="${esc(l.id)}">Receipt</button>`:""}${canDel?`<button class="btn btn-danger btn-sm" data-delL="${esc(l.id)}">Delete</button>`:""}</td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">No entries yet. Add your first expense or income above.</div>';
   $("#addExp").onclick=()=>openLedger("Expense"); $("#addInc").onclick=()=>openLedger("Income"); $("#addDebt").onclick=openDebt; $("#xlF").onclick=()=>exportExcel("finance");
   $("#lt").onchange=e=>{ adm.lType=e.target.value; admFinance(); };
   $$("[data-pay]").forEach(b=>b.onclick=()=>openDebtPayment(b.dataset.pay));
@@ -1092,6 +1198,70 @@ function openDebtPayment(id){
   };
 }
 
+/* ---------- Password dialogs ---------- */
+function openPwModal(title,note,onSave){
+  const defs={newPassword:{label:"New password",type:"password",required:true,hint:"At least 8 characters"},confirm:{label:"Confirm new password",type:"password",required:true}};
+  const data={}, keys=Object.keys(defs);
+  const bg=modal(`<h3>${esc(title)}</h3>${note?`<p style="color:var(--muted);margin-top:0">${esc(note)}</p>`:""}<div id="pwF">${keys.map(k=>fieldHTML(k,data,defs)).join("")}</div><div id="pwErr"></div><div style="display:flex;gap:.5rem;justify-content:flex-end"><button class="btn btn-ghost" id="pwC">Cancel</button><button class="btn btn-primary" id="pwS">Save password</button></div>`);
+  const root=$("#pwF",bg); bindForm(root,data); $("#pwC",bg).onclick=()=>bg.remove();
+  $("#pwS",bg).onclick=async()=>{
+    if(!validateFields(keys,data,root,defs)) return;
+    if(data.newPassword.length<8){ $("#pwErr",bg).innerHTML='<div class="alert err">Use at least 8 characters.</div>'; return; }
+    if(data.newPassword!==data.confirm){ $("#pwErr",bg).innerHTML='<div class="alert err">The two passwords do not match.</div>'; return; }
+    try{ await onSave(data.newPassword); bg.remove(); }catch(e){ $("#pwErr",bg).innerHTML=`<div class="alert err">${esc(e.message)}</div>`; }
+  };
+}
+function openMyPassword(){
+  openPwModal("Change my password","You will stay signed in with the new password.",async pw=>{
+    await api("changePassword",{password:adm.pw,newPassword:pw});
+    adm.pw=pw; try{ sessionStorage.setItem("imcs_pw",pw); }catch(e){} toast("Password changed");
+  });
+}
+
+/* ---------- Settings (admin) ---------- */
+function admSettings(){
+  const fa=adm.finAccess||{}, susp=!!fa.suspended;
+  $("#admBody").innerHTML=`<div class="admin-head"><h2>Settings</h2></div>
+  <div class="set-grid">
+    <div class="card set-card"><h3>My admin password</h3><p style="color:var(--muted);margin-top:0">Change the password you use to sign in as admin.</p><button class="btn btn-primary" id="myPw2">Change my password</button></div>
+    <div class="card set-card"><h3>Finance Secretary access</h3>
+      <div class="row"><span>Status</span><b><span class="pill ${susp?"bad":"ok"}">${susp?"Suspended":"Active"}</span></b></div>
+      <div class="row"><span>Last sign-in</span><b>${fa.lastLogin?fmtDT(fa.lastLogin):"Never"}</b></div>
+      <label class="consent" style="margin:.8rem 0 0"><input type="checkbox" id="finDel" ${fa.canDelete?"checked":""}><span>Allow the Finance Secretary to delete entries</span></label>
+      <div class="btns"><button class="btn ${susp?"btn-primary":"btn-danger"}" id="finSusp">${susp?"Reactivate access":"Suspend access"}</button><button class="btn btn-ghost" id="finPw">Reset password</button></div>
+      <p style="color:var(--muted);font-size:.85rem;margin:.9rem 0 0">The Finance Secretary sees only the Finances tab. To sign in they choose <b>Finance Secretary</b> on the Admin page. Suspending signs them out within about 30 seconds and blocks new sign-ins.</p></div>
+  </div>`;
+  const setFin=async(patch,msg)=>{ try{ await api("adminFinanceSet",{password:adm.pw,patch}); toast(msg); loadAdmin(); }catch(e){ toast(e.message); } };
+  $("#myPw2").onclick=openMyPassword;
+  $("#finSusp").onclick=()=>setFin({suspended:!susp},susp?"Finance access reactivated":"Finance access suspended");
+  $("#finDel").onchange=e=>setFin({canDelete:e.target.checked},"Permission saved");
+  $("#finPw").onclick=()=>openPwModal("Reset Finance Secretary password","Give the new password to the Finance Secretary.",async pw=>{ await api("adminFinanceSet",{password:adm.pw,patch:{newPassword:pw}}); toast("Finance password reset"); });
+}
+
+/* ---------- Updates (admin) ---------- */
+const UPD_DEFS={
+  title:{label:"Headline",type:"text",optional:true,ph:"e.g. Freshers' orientation this Saturday"},
+  body:{label:"Message",type:"textarea",required:true,ph:"Write the update everyone should read"},
+};
+function admUpdates(){
+  $("#admBody").innerHTML=`<div class="admin-head"><h2>Home page updates</h2></div>
+    <div class="card" style="max-width:720px;margin:0 0 1.2rem"><p style="margin-top:0;color:var(--muted)">Messages you post appear on the home page for everyone within about 30 seconds.</p>
+    <div id="upF">${Object.keys(UPD_DEFS).map(k=>fieldHTML(k,adm.updDraft,UPD_DEFS)).join("")}</div>
+    <label class="consent" style="margin:0 0 1rem"><input type="checkbox" id="upPin"><span>Pin to the top of the list</span></label>
+    <div id="upErr"></div><button class="btn btn-primary" id="upGo">Post update</button></div>
+    <div class="section-h"><h3>Posted updates</h3></div>
+    ${adm.updates.length?adm.updates.map(u=>`<div class="help-item"><header><div><b>${esc(u.title)||"(No headline)"}</b> ${u.pinned==="Yes"?'<span class="pill warn">Pinned</span>':""}</div><small style="color:var(--muted)">${fmtDT(u.createdAt)}</small></header><p>${esc(u.body)}</p><div class="acts"><button class="btn btn-ghost btn-sm" data-pin="${esc(u.id)}">${u.pinned==="Yes"?"Unpin":"Pin"}</button><button class="btn btn-danger btn-sm" data-delu="${esc(u.id)}">Delete</button></div></div>`).join(""):'<div class="empty">Nothing posted yet.</div>'}`;
+  const root=$("#upF"); bindForm(root,adm.updDraft);
+  $("#upGo").onclick=async()=>{
+    if(!validateFields(Object.keys(UPD_DEFS),adm.updDraft,root,UPD_DEFS)) return;
+    const b=$("#upGo"); b.disabled=true; b.textContent="Posting…";
+    try{ await api("adminAdd",{password:adm.pw,sheet:"Updates",record:{title:(adm.updDraft.title||"").trim(),body:adm.updDraft.body.trim(),pinned:$("#upPin").checked?"Yes":"No",author:"Admin"}}); adm.updDraft={}; toast("Update posted to the home page"); await loadAdmin(); }
+    catch(e){ $("#upErr").innerHTML=`<div class="alert err" role="alert">${esc(e.message)}</div>`; b.disabled=false; b.textContent="Post update"; }
+  };
+  $$("[data-pin]").forEach(b=>b.onclick=async()=>{ const u=adm.updates.find(x=>x.id===b.dataset.pin); try{ await api("adminUpdate",{password:adm.pw,sheet:"Updates",id:u.id,patch:{pinned:u.pinned==="Yes"?"No":"Yes"}}); loadAdmin(); }catch(e){ toast(e.message); } });
+  $$("[data-delu]").forEach(b=>b.onclick=()=>delRecord("Updates",b.dataset.delu,"this update"));
+}
+
 /* ---------- Help (admin) ---------- */
 function admHelp(){
   $("#admBody").innerHTML=`<div class="admin-head"><h2>Help &amp; complaints</h2><button class="btn btn-primary btn-sm" id="xlH">Export to Excel</button></div>`+(adm.help.length?adm.help.map(h=>`<div class="help-item"><header><div><b>${esc(h.name)}</b> · <span style="color:var(--muted)">${esc(h.contact)}</span></div><div><span class="pill ${h.status==="New"?"bad":h.status==="Resolved"?"ok":"warn"}">${esc(h.status)}</span> <small style="color:var(--muted)">${fmtDT(h.createdAt)}</small></div></header>
@@ -1137,19 +1307,36 @@ async function exportExcel(which){
    Hero: background video + drifting light motes
    ===================================================================== */
 function initHero(){
-  const hv=$("#heroVideo");
-  if(CFG.HERO_VIDEO_ID && !matchMedia("(prefers-reduced-motion: reduce)").matches && !hv.firstChild){
-    const id=CFG.HERO_VIDEO_ID, f=document.createElement("iframe");
-    f.title="Decorative background video"; f.setAttribute("aria-hidden","true"); f.tabIndex=-1; f.allow="autoplay; encrypted-media";
-    f.src=`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&modestbranding=1&playsinline=1&rel=0&disablekb=1&iv_load_policy=3`;
-    f.onload=()=>setTimeout(()=>hv.classList.add("on"),1500);
-    hv.appendChild(f);
+  const id=CFG.HERO_VIDEO_ID, hv=$("#heroVideo"), po=$("#heroPoster");
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const conn=navigator.connection||{}, slow=!!conn.saveData||/(^|-)2g$/.test(conn.effectiveType||"");
+  // 1) instant poster from the video's own thumbnail, so the page never waits on the video
+  if(id && po && !po.dataset.on){
+    po.dataset.on=1;
+    const tries=["maxres2","hq2","hqdefault"].map(n=>`https://i.ytimg.com/vi/${id}/${n}.jpg`);
+    (function next(i){ if(i>=tries.length) return; const im=new Image(); im.onload=()=>{ if(im.naturalWidth<240){ next(i+1); return; } po.style.backgroundImage=`url(${im.src})`; po.classList.add("on"); }; im.onerror=()=>next(i+1); im.src=tries[i]; })(0);
+  }
+  // 2) start the video only after the page has finished loading, and skip it on data saver / 2G
+  if(id && !reduce && !slow && !hv.firstChild){
+    const start=()=>{
+      const f=document.createElement("iframe"), on=()=>hv.classList.add("on");
+      f.title="Decorative background video"; f.setAttribute("aria-hidden","true"); f.tabIndex=-1; f.allow="autoplay; encrypted-media";
+      const origin=location.protocol.startsWith("http")?"&origin="+encodeURIComponent(location.origin):"";
+      f.src=`https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&loop=1&playlist=${id}&controls=0&modestbranding=1&playsinline=1&rel=0&disablekb=1&iv_load_policy=3&enablejsapi=1${origin}`;
+      f.onload=()=>{ try{ f.contentWindow.postMessage(JSON.stringify({event:"listening",id:1,channel:"widget"}),"*"); f.contentWindow.postMessage(JSON.stringify({event:"command",func:"addEventListener",args:["onStateChange"],id:1,channel:"widget"}),"*"); }catch(e){} setTimeout(on,7000); };
+      addEventListener("message",e=>{
+        let d=e.data; if(typeof d==="string"){ try{ d=JSON.parse(d); }catch(x){ return; } }
+        if(d && ((d.event==="onStateChange"&&d.info===1)||(d.event==="infoDelivery"&&d.info&&d.info.playerState===1))) on();
+      });
+      hv.appendChild(f);
+    };
+    if(document.readyState==="complete") setTimeout(start,200); else addEventListener("load",()=>setTimeout(start,200),{once:true});
   }
   const c=$("#motes"); if(!c || c.dataset.on) return; c.dataset.on=1;
   const ctx=c.getContext("2d"); let W,H,dots=[];
   const size=()=>{ W=c.width=c.offsetWidth; H=c.height=c.offsetHeight; dots=Array.from({length:Math.round(W*H/32000)},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.8+.5,s:Math.random()*.3+.06,a:Math.random()*.5+.15,p:Math.random()*6})); };
   size(); addEventListener("resize",size);
-  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  if(reduce) return;
   (function tick(t){
     if(!$("#view-home").classList.contains("hidden")){
       ctx.clearRect(0,0,W,H);
@@ -1161,24 +1348,56 @@ function initHero(){
 }
 
 /* =====================================================================
+   Home page: live updates from the admin
+   ===================================================================== */
+const upd={list:[],seen:new Set(),first:true,timer:null,all:false};
+async function pollUpdates(){
+  try{
+    const r=await api("updatesList"), list=r.updates||[];
+    const wasFirst=upd.first, fresh=wasFirst?[]:list.filter(u=>!upd.seen.has(u.id)).map(u=>u.id);
+    if(!wasFirst && fresh.length){ const u=list.find(x=>x.id===fresh[0]); toast("New update: "+(u.title||"from the admin")); }
+    upd.list=list; upd.seen=new Set(list.map(u=>u.id)); upd.first=false; renderUpdates(fresh);
+  }catch(e){}
+}
+function renderUpdates(fresh=[]){
+  const sec=$("#updates"), chip=$("#heroNews"), list=[...upd.list].sort((a,b)=>(b.pinned==="Yes")-(a.pinned==="Yes")||String(b.createdAt).localeCompare(String(a.createdAt)));
+  sec.classList.toggle("hidden",!list.length); chip.classList.toggle("hidden",!list.length);
+  if(!list.length) return;
+  const latest=[...list].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt)))[0];
+  chip.innerHTML=`<b>Update</b><span>${esc(latest.title||latest.body)}</span>`;
+  const shown=upd.all?list:list.slice(0,4);
+  $("#updList").innerHTML=shown.map(u=>{ const isNew=Date.now()-new Date(u.createdAt)<864e5; return `<article class="upd ${u.pinned==="Yes"?"pin":""} ${fresh.includes(u.id)?"fresh":""}">${u.pinned==="Yes"?'<span class="tagp">Pinned</span>':""}${isNew?'<span class="tagp tagn">New</span>':""}${u.title?`<h3>${esc(u.title)}</h3>`:""}<p>${esc(u.body)}</p><small>${fmtDT(u.createdAt)}</small></article>`; }).join("")+(list.length>4?`<button class="btn btn-ghost btn-sm" id="updMore" type="button">${upd.all?"Show fewer":"Show older updates ("+(list.length-4)+")"}</button>`:"");
+  const m=$("#updMore"); if(m) m.onclick=()=>{ upd.all=!upd.all; renderUpdates(); };
+}
+function startUpdates(){
+  pollUpdates(); clearInterval(upd.timer);
+  upd.timer=setInterval(()=>{ if(!document.hidden && !$("#view-home").classList.contains("hidden")) pollUpdates(); },25000);
+}
+document.addEventListener("visibilitychange",()=>{ if(!document.hidden && !$("#view-home").classList.contains("hidden")) pollUpdates(); });
+addEventListener("storage",e=>{ if(e.key==="imcs_updates") pollUpdates(); });
+
+/* =====================================================================
    Router
    ===================================================================== */
 function route(){
   const h=(location.hash||"#/").replace(/^#\/?/,"").split("?")[0]||"home";
+  const anchor=["about","updates"].includes(h);
   const name=["register","dues","admin"].includes(h)?h:"home";
+  const wasHome=!$("#view-home").classList.contains("hidden");
   $$(".view").forEach(v=>v.classList.toggle("hidden",v.id!=="view-"+name));
-  window.scrollTo(0,0);
+  if(!(anchor&&wasHome)) window.scrollTo(0,0);
   if(name==="register"){ if(!reg.done && !reg.data.fullName) loadDraft(); renderRegister(); }
   if(name==="dues") renderDues();
   if(name==="admin"){ renderAdmin(); if(adm.pw) loadAdmin(true); }
-  if(name==="home") initHero();
-  $("#helpFab").classList.toggle("hidden",name==="admin");
+  if(name==="home"){ initHero(); if(!wasHome||!upd.timer) startUpdates(); if(anchor) setTimeout(()=>{ const el=document.getElementById(h); if(el&&!el.classList.contains("hidden")) el.scrollIntoView({behavior:"smooth"}); },60); }
+  else clearInterval(upd.timer), upd.timer=null;
+  $("#assist").classList.toggle("hidden",name==="admin");
   if(name==="admin") $("#helpPanel").classList.add("hidden");
   document.title=({home:"Holy Spirit Catholic Church · IMCS Pax Romana UEW-Local",register:"Register · IMCS UEW-Local",dues:"Pay annual dues · IMCS UEW-Local",admin:"Admin · IMCS UEW-Local"})[name];
 }
 addEventListener("hashchange",route);
 addEventListener("keydown",e=>{ if(e.key==="Escape"){ const m=$(".modal-bg"); if(m) m.remove(); else if(!$("#helpPanel").classList.contains("hidden")) toggleHelp(); } });
-$("#helpFab").onclick=toggleHelp;
+$("#helpFab").onclick=toggleHelp; $("#assistTag").onclick=toggleHelp;
 $("#yr").textContent=new Date().getFullYear();
 fillLogos();
 route();

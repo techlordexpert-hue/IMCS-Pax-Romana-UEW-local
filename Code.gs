@@ -1,63 +1,121 @@
 /**
- * IMCS Pax Romana · UEW Local — backend
+ * Holy Spirit Catholic Church · IMCS Pax Romana UEW-Local — backend
  * Runs inside a Google Sheet (Extensions > Apps Script). See SETUP.md.
  *
- * - Saves members, dues and help messages into three sheets
- * - Saves passport pictures and payment screenshots to a Google Drive folder
- * - Emails the Finance Secretary whenever dues are submitted
- * - Emails the admin whenever a help message arrives
- * - Admin actions require ADMIN_PASSWORD (checked here, on the server)
+ * Roles
+ *  - admin:   full access
+ *  - finance: Finance Secretary, can only use the Finances part (ledger + debts)
+ * Passwords are stored hashed. The admin can change both passwords, suspend the
+ * Finance Secretary and control what they may do from the dashboard (Settings tab).
  */
 
-// ====== EDIT THESE ======
-const ADMIN_PASSWORD  = 'change-this-password';
-const FINANCE_EMAIL   = 'finance.secretary@example.com';   // receives every dues submission
-const ADMIN_EMAIL     = 'admin@example.com';               // receives help messages
-const ORG_NAME        = 'IMCS Pax Romana UEW';
-const PHOTO_FOLDER    = 'IMCS UEW Uploads';
-// ========================
+// ====== EDIT THESE (first-time defaults; change them later from the dashboard) ======
+const ADMIN_PASSWORD   = 'change-this-password';
+const FINANCE_PASSWORD = 'finance2026';
+const FINANCE_EMAIL    = 'finance.secretary@example.com';   // receives each dues submission
+const ADMIN_EMAIL      = 'admin@example.com';               // receives help messages
+const ORG_NAME         = 'IMCS Pax Romana UEW-Local';
+const PHOTO_FOLDER     = 'IMCS UEW Uploads';
+// =====================================================================================
 
+const SALT = 'imcs-uew-salt-2026';
 const SHEETS = {
   Members: ['id','createdAt','fullName','gender','dob','phone','email','programme','level','indexNumber','residence','parish','diocese','society','sacraments','address','nextOfKinName','nextOfKinRelation','nextOfKinPhone','photoId','source'],
   Dues:    ['id','createdAt','fullName','phone','duesType','amount','paidOn','status'],
   Help:    ['id','createdAt','name','contact','category','message','page','status'],
   Ledger:  ['id','createdAt','date','type','category','description','amount','party','receiptId'],
-  Debts:   ['id','createdAt','date','creditor','description','amount','paid','dueDate','status']
+  Debts:   ['id','createdAt','date','creditor','description','amount','paid','dueDate','status'],
+  Updates: ['id','createdAt','title','body','pinned','author']
 };
-const PUBLIC_ACTIONS = ['register','dues','duesStatus','help'];
+const PUBLIC_ACTIONS  = ['register','dues','duesStatus','help','updatesList'];
+const FINANCE_ACTIONS = ['adminLogin','adminList','adminAdd','adminUpdate','adminDelete','changePassword'];
 
-function doGet() {
-  return json({ ok: true, service: ORG_NAME + ' backend', time: new Date().toISOString() });
-}
+function doGet() { return json({ ok: true, service: ORG_NAME + ' backend', time: new Date().toISOString() }); }
 
 function doPost(e) {
   try {
-    const req = JSON.parse(e.postData.contents);
-    const a = req.action;
-    if (PUBLIC_ACTIONS.indexOf(a) === -1) requireAdmin(req.password);
+    const req = JSON.parse(e.postData.contents), a = req.action;
+    let role = null;
+    if (PUBLIC_ACTIONS.indexOf(a) === -1) {
+      role = authenticate(req.role, req.password);
+      if (role === 'finance') checkFinance(a, req);
+    }
     switch (a) {
       case 'register':       return json(registerMember(req.member, 'Online form'));
-      case 'adminAddMember': return json(registerMember(req.member, 'Admin'));
       case 'dues':           return json(submitDues(req.dues));
       case 'duesStatus':     return json(duesStatus(req.id));
-      case 'adminAdd':       return json(adminAdd(req.sheet, req.record));
       case 'help':           return json(submitHelp(req.help));
-      case 'adminLogin':     return json({ ok: true });
-      case 'adminList':      return json({ ok: true, members: readAll('Members'), dues: readAll('Dues'), help: readAll('Help'), ledger: readAll('Ledger'), debts: readAll('Debts') });
+      case 'updatesList':    return updatesList();
+      case 'adminLogin':     return json(login(role));
+      case 'adminList':      return json(listFor(role));
+      case 'adminAddMember': return json(registerMember(req.member, 'Admin'));
+      case 'adminAdd':       return json(adminAdd(req.sheet, req.record));
       case 'adminUpdate':    return json(updateRow(req.sheet, req.id, req.patch));
       case 'adminDelete':    return json(deleteRow(req.sheet, req.id));
+      case 'changePassword': return json(changePassword(role, req.newPassword));
+      case 'adminFinanceSet':return json(financeSet(req.patch));
     }
     throw new Error('Unknown action');
   } catch (err) {
     return json({ ok: false, error: String(err.message || err) });
   }
 }
+function json(o) { return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON); }
 
-function json(o) {
-  return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
+/* ---------- auth ---------- */
+function hash(s) { return Utilities.base64Encode(Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, SALT + s)); }
+function getAuth() {
+  const raw = PropertiesService.getScriptProperties().getProperty('AUTH');
+  const a = raw ? JSON.parse(raw) : {};
+  if (!a.adminHash) a.adminHash = hash(ADMIN_PASSWORD);
+  if (!a.fin) a.fin = { hash: hash(FINANCE_PASSWORD), suspended: false, canDelete: true, lastLogin: '' };
+  return a;
 }
-function requireAdmin(pw) {
-  if (!pw || pw !== ADMIN_PASSWORD) throw new Error('Wrong password.');
+function saveAuth(a) { PropertiesService.getScriptProperties().setProperty('AUTH', JSON.stringify(a)); }
+function authenticate(role, pw) {
+  if (!pw) throw new Error('Wrong password.');
+  const a = getAuth();
+  if (role === 'finance') {
+    if (a.fin.suspended) throw new Error('Finance access is suspended. Contact the admin.');
+    if (hash(pw) !== a.fin.hash) throw new Error('Wrong password.');
+    return 'finance';
+  }
+  if (hash(pw) !== a.adminHash) throw new Error('Wrong password.');
+  return 'admin';
+}
+function checkFinance(a, req) {
+  if (FINANCE_ACTIONS.indexOf(a) === -1) throw new Error('Not allowed.');
+  const money = ['Ledger', 'Debts'];
+  if (a === 'adminAdd' && money.indexOf(req.sheet) === -1) throw new Error('Not allowed.');
+  if (a === 'adminUpdate' && req.sheet !== 'Debts') throw new Error('Not allowed.');
+  if (a === 'adminDelete' && (money.indexOf(req.sheet) === -1 || !getAuth().fin.canDelete)) throw new Error('You do not have permission to delete.');
+}
+function login(role) {
+  const a = getAuth();
+  if (role === 'finance') { a.fin.lastLogin = new Date().toISOString(); saveAuth(a); }
+  return { ok: true, role: role, perms: { canDelete: !!a.fin.canDelete } };
+}
+function changePassword(role, pw) {
+  if (!pw || String(pw).length < 8) throw new Error('Use at least 8 characters.');
+  const a = getAuth();
+  if (role === 'finance') a.fin.hash = hash(pw); else a.adminHash = hash(pw);
+  saveAuth(a); return { ok: true };
+}
+function financeSet(p) {
+  p = p || {}; const a = getAuth();
+  if ('suspended' in p) a.fin.suspended = !!p.suspended;
+  if ('canDelete' in p) a.fin.canDelete = !!p.canDelete;
+  if (p.newPassword) { if (String(p.newPassword).length < 8) throw new Error('Use at least 8 characters.'); a.fin.hash = hash(p.newPassword); }
+  saveAuth(a); return { ok: true };
+}
+function listFor(role) {
+  const a = getAuth(), perms = { canDelete: !!a.fin.canDelete };
+  if (role === 'finance') {
+    const dues = readAll('Dues').filter(d => d.status === 'Confirmed').reduce((t, d) => t + (Number(d.amount) || 0), 0);
+    return { ok: true, role: role, perms: perms, ledger: readAll('Ledger'), debts: readAll('Debts'), duesConfirmed: dues };
+  }
+  return { ok: true, role: role, members: readAll('Members'), dues: readAll('Dues'), help: readAll('Help'), ledger: readAll('Ledger'), debts: readAll('Debts'), updates: readAll('Updates'),
+    financeAccess: { suspended: !!a.fin.suspended, canDelete: !!a.fin.canDelete, lastLogin: a.fin.lastLogin } };
 }
 
 /* ---------- sheet helpers ---------- */
@@ -65,33 +123,23 @@ function sheet(name) {
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   let sh = ss.getSheetByName(name);
   if (!sh) {
-    sh = ss.insertSheet(name);
-    sh.appendRow(SHEETS[name]);
-    sh.setFrozenRows(1);
-    sh.getRange(1, 1, 1, SHEETS[name].length).setFontWeight('bold').setBackground('#e6f2e9');
+    sh = ss.insertSheet(name); sh.appendRow(SHEETS[name]); sh.setFrozenRows(1);
+    sh.getRange(1, 1, 1, SHEETS[name].length).setFontWeight('bold').setBackground('#e8eefa');
   }
   return sh;
 }
 function readAll(name) {
-  const sh = sheet(name), vals = sh.getDataRange().getValues();
-  const head = vals.shift();
-  return vals.filter(r => r[0] !== '').map(r => {
-    const o = {};
-    head.forEach((h, i) => { o[h] = r[i] instanceof Date ? r[i].toISOString() : r[i]; });
-    return o;
-  });
+  const vals = sheet(name).getDataRange().getValues(), head = vals.shift();
+  return vals.filter(r => r[0] !== '').map(r => { const o = {}; head.forEach((h, i) => { o[h] = r[i] instanceof Date ? r[i].toISOString() : r[i]; }); return o; });
 }
-function safe(v) {           // block spreadsheet formula injection
-  v = v == null ? '' : String(v);
-  return /^[=+\-@]/.test(v) ? "'" + v : v;
-}
+function safe(v) { v = v == null ? '' : String(v); return /^[=+\-@]/.test(v) ? "'" + v : v; }   // block formula injection
 function appendRow(name, obj) {
-  const cols = SHEETS[name];
-  sheet(name).appendRow(cols.map(c => (c === 'createdAt' || typeof obj[c] === 'number') ? obj[c] : safe(obj[c])));
+  sheet(name).appendRow(SHEETS[name].map(c => (c === 'createdAt' || typeof obj[c] === 'number') ? obj[c] : safe(obj[c])));
+  if (name === 'Updates') CacheService.getScriptCache().remove('updates');
 }
 function findRow(name, id) {
   const sh = sheet(name), ids = sh.getRange(1, 1, sh.getLastRow(), 1).getValues();
-  for (let i = 1; i < ids.length; i++) if (ids[i][0] === id) return { sh, row: i + 1 };
+  for (let i = 1; i < ids.length; i++) if (ids[i][0] === id) return { sh: sh, row: i + 1 };
   return null;
 }
 function updateRow(name, id, patch) {
@@ -103,20 +151,21 @@ function updateRow(name, id, patch) {
     const c = cols.indexOf(k);
     if (c > -1 && k !== 'id' && k !== 'createdAt') f.sh.getRange(f.row, c + 1).setValue(typeof patch[k] === 'number' ? patch[k] : safe(patch[k]));
   });
+  if (name === 'Updates') CacheService.getScriptCache().remove('updates');
   return { ok: true };
 }
 function deleteRow(name, id) {
   if (!SHEETS[name]) throw new Error('Unknown sheet.');
   const f = findRow(name, id); if (!f) throw new Error('Record not found.');
   f.sh.deleteRow(f.row);
+  if (name === 'Updates') CacheService.getScriptCache().remove('updates');
   return { ok: true };
 }
 
 /* ---------- Drive images ---------- */
 function saveImage(dataUrl, prefix) {
   if (!dataUrl) return '';
-  const m = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(dataUrl);
-  if (!m) return '';
+  const m = /^data:(image\/(?:jpeg|png|webp));base64,(.+)$/.exec(dataUrl); if (!m) return '';
   if (m[2].length > 1500000) throw new Error('Image is too large.');
   const blob = Utilities.newBlob(Utilities.base64Decode(m[2]), m[1], prefix + '.jpg');
   const it = DriveApp.getFoldersByName(PHOTO_FOLDER);
@@ -126,7 +175,7 @@ function saveImage(dataUrl, prefix) {
   return file.getId();
 }
 
-/* ---------- actions ---------- */
+/* ---------- public actions ---------- */
 function registerMember(m, source) {
   if (!m || !m.fullName || !m.phone || !m.email) throw new Error('Missing required details.');
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
@@ -148,17 +197,13 @@ function submitDues(d) {
   const lock = LockService.getScriptLock(); lock.waitLock(20000);
   let id;
   try {
-    const n = readAll('Dues').length + 1;
-    id = 'RCP-' + new Date().getFullYear() + '-' + String(n).padStart(4, '0');
-    appendRow('Dues', { id: id, createdAt: new Date().toISOString(), fullName: d.fullName, phone: d.phone,
-      duesType: 'Annual dues', amount: Number(d.amount), paidOn: d.paidOn, status: 'Pending' });
+    id = 'RCP-' + new Date().getFullYear() + '-' + String(readAll('Dues').length + 1).padStart(4, '0');
+    appendRow('Dues', { id: id, createdAt: new Date().toISOString(), fullName: d.fullName, phone: d.phone, duesType: 'Annual dues', amount: Number(d.amount), paidOn: d.paidOn, status: 'Pending' });
   } finally { lock.releaseLock(); }
-  const body =
-    'New annual dues reported.\n\n' +
-    'Receipt no.: ' + id + '\nName: ' + d.fullName + '\nMoMo number: ' + d.phone + '\n' +
-    'Amount: GHS ' + d.amount + '\nDate: ' + d.paidOn + '\n\n' +
-    'Please check your MoMo, then confirm it in the admin dashboard (Dues tab).';
-  try { MailApp.sendEmail({ to: FINANCE_EMAIL, subject: '[' + ORG_NAME + '] Annual dues: ' + d.fullName + ' - GHS ' + d.amount, body: body }); } catch (e) {}
+  try {
+    MailApp.sendEmail({ to: FINANCE_EMAIL, subject: '[' + ORG_NAME + '] Annual dues: ' + d.fullName + ' - GHS ' + d.amount,
+      body: 'New annual dues reported.\n\nReceipt no.: ' + id + '\nName: ' + d.fullName + '\nMoMo number: ' + d.phone + '\nAmount: GHS ' + d.amount + '\nDate: ' + d.paidOn + '\n\nPlease check MoMo. The admin confirms payments and issues receipts in the dashboard (Dues tab).' });
+  } catch (e) {}
   return { ok: true, id: id };
 }
 
@@ -168,17 +213,6 @@ function duesStatus(id) {
   return { ok: true, status: d.status, fullName: d.fullName, amount: d.amount, paidOn: d.paidOn };
 }
 
-function adminAdd(name, rec) {
-  if (name !== 'Ledger' && name !== 'Debts') throw new Error('Unknown sheet.');
-  const id = (name === 'Ledger' ? 'L-' : 'DB-') + Utilities.getUuid().slice(0, 8).toUpperCase();
-  const row = Object.assign({}, rec, { id: id, createdAt: new Date().toISOString() });
-  if (rec.receipt) row.receiptId = saveImage(rec.receipt, 'receipt-' + id);
-  if (name === 'Ledger') row.amount = Number(row.amount);
-  if (name === 'Debts') { row.amount = Number(row.amount); row.paid = Number(row.paid) || 0; }
-  appendRow(name, row);
-  return { ok: true, id: id };
-}
-
 function submitHelp(h) {
   if (!h || !h.name || !h.message) throw new Error('Missing required details.');
   const id = 'H-' + Utilities.getUuid().slice(0, 8).toUpperCase();
@@ -186,6 +220,29 @@ function submitHelp(h) {
   try {
     MailApp.sendEmail({ to: ADMIN_EMAIL, subject: '[' + ORG_NAME + '] Help: ' + h.category,
       body: 'From: ' + h.name + ' (' + h.contact + ')\nCategory: ' + h.category + '\n\n' + h.message + '\n\nReply from the admin dashboard (Help tab).' });
-  } catch (e) { /* email quota; the message is still saved */ }
+  } catch (e) {}
+  return { ok: true, id: id };
+}
+
+/* Home page updates: cached for 60s, cache is cleared whenever the admin posts, edits or deletes */
+function updatesList() {
+  const cache = CacheService.getScriptCache(), hit = cache.get('updates');
+  if (hit) return ContentService.createTextOutput(hit).setMimeType(ContentService.MimeType.JSON);
+  const list = readAll('Updates').sort((a, b) => String(b.createdAt).localeCompare(String(a.createdAt))).slice(0, 20)
+    .map(u => ({ id: u.id, createdAt: u.createdAt, title: u.title, body: u.body, pinned: u.pinned }));
+  const out = JSON.stringify({ ok: true, updates: list });
+  cache.put('updates', out, 60);
+  return ContentService.createTextOutput(out).setMimeType(ContentService.MimeType.JSON);
+}
+
+/* ---------- admin / finance record creation ---------- */
+function adminAdd(name, rec) {
+  if (['Ledger', 'Debts', 'Updates'].indexOf(name) === -1) throw new Error('Unknown sheet.');
+  const id = (name === 'Ledger' ? 'L-' : name === 'Debts' ? 'DB-' : 'U-') + Utilities.getUuid().slice(0, 8).toUpperCase();
+  const row = Object.assign({}, rec, { id: id, createdAt: new Date().toISOString() });
+  if (rec.receipt) row.receiptId = saveImage(rec.receipt, 'receipt-' + id);
+  if (name === 'Ledger') row.amount = Number(row.amount);
+  if (name === 'Debts') { row.amount = Number(row.amount); row.paid = Number(row.paid) || 0; }
+  appendRow(name, row);
   return { ok: true, id: id };
 }
