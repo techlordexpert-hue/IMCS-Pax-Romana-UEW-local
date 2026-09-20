@@ -292,8 +292,37 @@ td.num,th.num{text-align:right;white-space:nowrap}
 .toast{position:fixed;left:50%;bottom:1.5rem;transform:translateX(-50%);background:var(--ink);color:#fff;padding:.7rem 1.2rem;border-radius:999px;z-index:200;font-size:.92rem;box-shadow:0 8px 24px rgba(0,0,0,.3)}
 .demo-banner{background:var(--sun-soft);color:#5d5100;border:1px solid #efe08a;border-radius:12px;padding:.7rem 1rem;font-size:.86rem;margin-bottom:1rem}
 
+/* ---------- Camera, card, attendance, reports ---------- */
+.cam{position:relative;background:#000;border-radius:14px;overflow:hidden;aspect-ratio:3/4;max-height:60dvh;margin:0 auto;width:auto}
+.cam video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.cam.mirror video{transform:scaleX(-1)}
+.cam-guide{position:absolute;inset:12% 20%;border:2px dashed rgba(255,255,255,.75);border-radius:50%;pointer-events:none}
+.card-preview{margin:1rem auto;max-width:460px}
+.card-preview canvas{width:100%;height:auto;border-radius:16px;box-shadow:0 14px 34px rgba(13,11,51,.35);display:block}
+.att-bar{display:flex;flex-wrap:wrap;gap:.8rem;align-items:flex-end;margin-bottom:1rem}
+.att-bar .field{margin:0}
+.att-bar .field input{min-width:190px}
+.att-chips{display:flex;gap:.5rem;flex-wrap:wrap}
+.att-list{display:grid;gap:.5rem}
+.att-row{display:flex;align-items:center;gap:.8rem;width:100%;text-align:left;background:#fff;border:1.5px solid var(--line);border-radius:14px;padding:.75rem .9rem;cursor:pointer;min-height:58px;transition:background .15s,border-color .15s}
+.att-row:hover{border-color:var(--blue-600)}
+.att-row.on{background:var(--blue-100);border-color:var(--navy-800)}
+.att-row[disabled]{opacity:.6;cursor:not-allowed}
+.att-tick{width:30px;height:30px;border-radius:50%;border:2px solid var(--line-strong);display:grid;place-items:center;flex:none;font-weight:700;color:var(--sun);background:#fff}
+.att-row.on .att-tick{background:var(--navy-900);border-color:var(--navy-900)}
+.att-name{flex:1;min-width:0}
+.att-name b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.att-name small{color:var(--muted)}
+.att-state{font-size:.8rem;font-weight:700;color:var(--muted);white-space:nowrap}
+.att-row.on .att-state{color:var(--navy-800)}
+.att-visit{display:flex;gap:.5rem;margin-bottom:.6rem}
+.att-visit input{flex:1;min-width:0;border:1.5px solid var(--line);border-radius:12px;padding:.7rem .9rem}
+.att-vrow{display:flex;justify-content:space-between;align-items:center;gap:.6rem;background:#fff;border:1px solid var(--line);border-radius:12px;padding:.5rem .8rem;margin-bottom:.4rem}
+.rep-sec{margin-top:1.4rem}
+.rep-sec h3{font-size:1.5rem;margin-bottom:.6rem}
+
 /* ---------- Admin extras ---------- */
-.seg{display:grid;grid-template-columns:1fr 1fr;background:var(--blue-50);border:1px solid var(--line);border-radius:999px;padding:4px;margin-bottom:1.2rem}
+.seg{display:grid;grid-template-columns:repeat(3,1fr);background:var(--blue-50);border:1px solid var(--line);border-radius:999px;padding:4px;margin-bottom:1.2rem}
 .seg button{border:0;background:none;padding:.6rem .5rem;border-radius:999px;font-weight:600;color:var(--muted);cursor:pointer}
 .seg button.on{background:var(--navy-900);color:var(--sun)}
 .set-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:1rem}
@@ -305,6 +334,9 @@ td.num,th.num{text-align:right;white-space:nowrap}
 .login-card .btn-ghost.back{margin-top:.8rem}
 
 @media (max-width:760px){
+  #view-admin .brand>span:last-child,#view-admin .marks .mark+.mark{display:none}
+  #adminBarBtns>span{flex-wrap:nowrap!important}
+  #adminBarBtns .btn{padding:.45rem .75rem;font-size:.8rem;white-space:nowrap}
   .lead-grid{grid-template-columns:1fr}
   .arch{order:-1;width:min(240px,70%)}
   .path{grid-template-columns:1fr;gap:1.6rem}
@@ -445,6 +477,7 @@ const CFG = {
   // Only used in DEMO mode. In live mode the password is set inside the Apps Script.
   DEMO_ADMIN_PASSWORD: "imcs2026",
   DEMO_FINANCE_PASSWORD: "finance2026",
+  DEMO_USHER_PASSWORD: "usher2026",
 
   // YouTube video ID for the home page background ("" to disable)
   HERO_VIDEO_ID: "_9D0DYwaojU",
@@ -526,7 +559,8 @@ async function saveFile(filename,data){
       if(dl){ await dl.save({filename,data}); return; }
     }
   }catch(e){ if(e && e.code==="declined") return; }
-  const blob=data instanceof Blob?data:new Blob([data]);
+  const type=/\.png$/.test(filename)?"image/png":/\.pdf$/.test(filename)?"application/pdf":/\.xlsx$/.test(filename)?"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet":"application/octet-stream";
+  const blob=data instanceof Blob?data:new Blob([data],{type});
   const a=document.createElement("a"); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); a.remove();
   setTimeout(()=>URL.revokeObjectURL(a.href),4000);
 }
@@ -557,22 +591,36 @@ async function rawApi(action,payload={}){
   }
   return demoApi(action,payload);
 }
-function demoAuth(){ try{ const a=JSON.parse(localStorage.getItem("imcs_auth")||"null"); if(a) return a; }catch(e){} return {adminPw:CFG.DEMO_ADMIN_PASSWORD,fin:{pw:CFG.DEMO_FINANCE_PASSWORD,suspended:false,canDelete:true,lastLogin:""}}; }
+function demoAuth(){
+  let a=null; try{ a=JSON.parse(localStorage.getItem("imcs_auth")||"null"); }catch(e){}
+  a=a||{}; a.adminPw=a.adminPw||CFG.DEMO_ADMIN_PASSWORD;
+  a.fin=a.fin||{pw:CFG.DEMO_FINANCE_PASSWORD,suspended:false,canDelete:true,lastLogin:""};
+  a.ush=a.ush||{pw:CFG.DEMO_USHER_PASSWORD,suspended:false,canBackdate:true,lastLogin:""};
+  return a;
+}
 function saveDemoAuth(a){ try{ localStorage.setItem("imcs_auth",JSON.stringify(a)); }catch(e){} }
+const ymd=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+const isSunday=v=>/^\d{4}-\d{2}-\d{2}$/.test(v)&&new Date(v+"T12:00:00").getDay()===0;
+function lastSundayStr(){ const d=new Date(); d.setDate(d.getDate()-d.getDay()); return ymd(d); }
 async function demoApi(action,p){
   await new Promise(r=>setTimeout(r,300));
-  const S={Members:Store.get("members"),Dues:Store.get("dues"),Help:Store.get("help"),Ledger:Store.get("ledger"),Debts:Store.get("debts"),Updates:Store.get("updates")};
+  const S={Members:Store.get("members"),Dues:Store.get("dues"),Help:Store.get("help"),Ledger:Store.get("ledger"),Debts:Store.get("debts"),Updates:Store.get("updates"),Attendance:Store.get("attendance")};
   const A=demoAuth(), PUB=["register","dues","duesStatus","help","updatesList"];
   let role=null;
   if(!PUB.includes(action)){
-    if((p.role||"admin")==="finance"){
-      if(A.fin.suspended) throw new Error("Finance access is suspended. Contact the admin.");
-      if(p.password!==A.fin.pw) throw new Error("Wrong password.");
-      role="finance";
-      if(!["adminLogin","adminList","adminAdd","adminUpdate","adminDelete","changePassword"].includes(action)) throw new Error("Not allowed.");
-      if(action==="adminAdd"&&!["Ledger","Debts"].includes(p.sheet)) throw new Error("Not allowed.");
-      if(action==="adminUpdate"&&p.sheet!=="Debts") throw new Error("Not allowed.");
-      if(action==="adminDelete"&&(!["Ledger","Debts"].includes(p.sheet)||!A.fin.canDelete)) throw new Error("You do not have permission to delete.");
+    const r=p.role||"admin";
+    if(r==="finance"||r==="usher"){
+      const acc=r==="finance"?A.fin:A.ush;
+      if(acc.suspended) throw new Error((r==="finance"?"Finance":"Usher")+" access is suspended. Contact the admin.");
+      if(p.password!==acc.pw) throw new Error("Wrong password.");
+      role=r;
+      const okA=r==="finance"?["adminLogin","adminList","adminAdd","adminUpdate","adminDelete","changePassword"]:["adminLogin","adminList","attendSet","changePassword"];
+      if(!okA.includes(action)) throw new Error("Not allowed.");
+      if(r==="finance"){
+        if(action==="adminAdd"&&!["Ledger","Debts"].includes(p.sheet)) throw new Error("Not allowed.");
+        if(action==="adminUpdate"&&p.sheet!=="Debts") throw new Error("Not allowed.");
+        if(action==="adminDelete"&&(!["Ledger","Debts"].includes(p.sheet)||!A.fin.canDelete)) throw new Error("You do not have permission to delete.");
+      }
     } else { if(p.password!==A.adminPw) throw new Error("Wrong password."); role="admin"; }
   }
   const save=name=>Store.set(name.toLowerCase(),S[name]);
@@ -582,23 +630,43 @@ async function demoApi(action,p){
     const id="IMCS-UEW-"+new Date().getFullYear()+"-"+String(S.Members.length+1).padStart(4,"0");
     const rec={id,createdAt:new Date().toISOString(),...m}; S.Members.push(rec); save("Members"); return rec;
   };
-  const perms={canDelete:!!A.fin.canDelete};
+  const perms=role==="usher"?{canBackdate:!!A.ush.canBackdate}:{canDelete:!!A.fin.canDelete};
   switch(action){
     case "register": return {ok:true,id:addMember(p.member).id};
     case "dues": { const rec={id:"RCP-"+new Date().getFullYear()+"-"+String(S.Dues.length+1).padStart(4,"0"),createdAt:new Date().toISOString(),status:"Pending",...p.dues}; S.Dues.push(rec); save("Dues"); return {ok:true,id:rec.id}; }
     case "duesStatus": { const d=S.Dues.find(x=>x.id.toLowerCase()===String(p.id||"").trim().toLowerCase()); if(!d) throw new Error("No payment found with that receipt number."); return {ok:true,status:d.status,fullName:d.fullName,amount:d.amount,paidOn:d.paidOn}; }
     case "help": { const rec={id:uid("H"),createdAt:new Date().toISOString(),status:"New",...p.help}; S.Help.push(rec); save("Help"); return {ok:true,id:rec.id}; }
     case "updatesList": return {ok:true,updates:[...S.Updates].sort((a,b)=>String(b.createdAt).localeCompare(String(a.createdAt))).slice(0,20)};
-    case "adminLogin": if(role==="finance"){ A.fin.lastLogin=new Date().toISOString(); saveDemoAuth(A); } return {ok:true,role,perms};
+    case "adminLogin": { if(role==="finance"){ A.fin.lastLogin=new Date().toISOString(); saveDemoAuth(A); } if(role==="usher"){ A.ush.lastLogin=new Date().toISOString(); saveDemoAuth(A); } return {ok:true,role,perms}; }
     case "adminList":
       if(role==="finance") return {ok:true,role,perms,ledger:S.Ledger,debts:S.Debts,duesConfirmed:S.Dues.filter(d=>d.status==="Confirmed").reduce((t,d)=>t+(Number(d.amount)||0),0)};
-      return {ok:true,role,members:S.Members,dues:S.Dues,help:S.Help,ledger:S.Ledger,debts:S.Debts,updates:S.Updates,financeAccess:{suspended:!!A.fin.suspended,canDelete:!!A.fin.canDelete,lastLogin:A.fin.lastLogin}};
+      if(role==="usher") return {ok:true,role,perms,members:S.Members.map(m=>({id:m.id,fullName:m.fullName,level:m.level,society:m.society})),attendance:S.Attendance};
+      return {ok:true,role,members:S.Members,dues:S.Dues,help:S.Help,ledger:S.Ledger,debts:S.Debts,updates:S.Updates,attendance:S.Attendance,
+        financeAccess:{suspended:!!A.fin.suspended,canDelete:!!A.fin.canDelete,lastLogin:A.fin.lastLogin},usherAccess:{suspended:!!A.ush.suspended,canBackdate:!!A.ush.canBackdate,lastLogin:A.ush.lastLogin}};
+    case "memberPhoto": { const m=S.Members.find(x=>x.id===p.id); return {ok:true,photo:(m&&m.photo)||""}; }
     case "adminAddMember": return {ok:true,id:addMember({...p.member,source:"Admin"}).id};
     case "adminAdd": { const rec={id:uid(p.sheet==="Ledger"?"L":p.sheet==="Debts"?"DB":"U"),createdAt:new Date().toISOString(),...p.record}; S[p.sheet].push(rec); save(p.sheet); return {ok:true,id:rec.id}; }
     case "adminUpdate": { const arr=S[p.sheet]; const i=arr.findIndex(x=>x.id===p.id); if(i<0) throw new Error("Record not found."); arr[i]={...arr[i],...p.patch}; save(p.sheet); return {ok:true}; }
     case "adminDelete": { S[p.sheet]=S[p.sheet].filter(x=>x.id!==p.id); save(p.sheet); return {ok:true}; }
-    case "changePassword": { if(String(p.newPassword||"").length<8) throw new Error("Use at least 8 characters."); if(role==="admin") A.adminPw=p.newPassword; else A.fin.pw=p.newPassword; saveDemoAuth(A); return {ok:true}; }
-    case "adminFinanceSet": { const q=p.patch||{}; if("suspended" in q) A.fin.suspended=!!q.suspended; if("canDelete" in q) A.fin.canDelete=!!q.canDelete; if(q.newPassword){ if(String(q.newPassword).length<8) throw new Error("Use at least 8 characters."); A.fin.pw=q.newPassword; } saveDemoAuth(A); return {ok:true}; }
+    case "changePassword": { if(String(p.newPassword||"").length<8) throw new Error("Use at least 8 characters."); if(role==="admin") A.adminPw=p.newPassword; else if(role==="finance") A.fin.pw=p.newPassword; else A.ush.pw=p.newPassword; saveDemoAuth(A); return {ok:true}; }
+    case "adminRoleSet": {
+      const q=p.patch||{}, acc=p.target==="usher"?A.ush:A.fin;
+      if("suspended" in q) acc.suspended=!!q.suspended;
+      if("canDelete" in q) A.fin.canDelete=!!q.canDelete;
+      if("canBackdate" in q) A.ush.canBackdate=!!q.canBackdate;
+      if(q.newPassword){ if(String(q.newPassword).length<8) throw new Error("Use at least 8 characters."); acc.pw=q.newPassword; }
+      saveDemoAuth(A); return {ok:true};
+    }
+    case "attendSet": {
+      const date=p.date;
+      if(!isSunday(date)) throw new Error("Pick a Sunday.");
+      if(date>ymd(new Date())) throw new Error("That Sunday has not come yet.");
+      if(role==="usher"&&!A.ush.canBackdate&&date!==lastSundayStr()) throw new Error("You can only mark the most recent Sunday.");
+      if(!p.present){ const rid=p.recordId||("A-"+date+"-"+p.memberId); S.Attendance=S.Attendance.filter(a=>a.id!==rid); save("Attendance"); return {ok:true}; }
+      const visitor=!!p.visitor, id=visitor?"A-"+date+"-V"+Math.random().toString(36).slice(2,8).toUpperCase():"A-"+date+"-"+p.memberId;
+      if(!S.Attendance.some(a=>a.id===id)){ S.Attendance.push({id,createdAt:new Date().toISOString(),date,memberId:visitor?"VISITOR":p.memberId,name:p.name,type:visitor?"Visitor":"Member",markedBy:role}); save("Attendance"); }
+      return {ok:true,id};
+    }
   }
   throw new Error("Unknown action");
 }
@@ -646,8 +714,9 @@ function fieldHTML(key,data,defs=F){
       <div class="tips"><b>For a good passport picture:</b><ul><li>Face the camera in good light, plain background</li><li>Head and shoulders, no sunglasses or cap</li></ul></div>
       <div class="photo-box"><div class="photo-prev" data-photo-prev>${src?`<img alt="Your passport picture preview" src="${esc(src)}">`:"No picture yet"}</div>
       <div class="photo-actions">
-        <label class="btn btn-ghost btn-sm" style="cursor:pointer">Take a photo<input class="sr" type="file" accept="image/*" capture="user" data-photo-in></label>
+        <button type="button" class="btn btn-primary btn-sm" data-cam>Take a photo</button>
         <label class="btn btn-ghost btn-sm" style="cursor:pointer">Choose from gallery<input class="sr" type="file" accept="image/*" data-photo-in></label>
+        <input class="sr" type="file" accept="image/*" capture="user" data-photo-in data-cam-fallback tabindex="-1" aria-hidden="true">
         <small style="color:var(--muted)">JPG or PNG. It is resized automatically.</small></div></div>
       <div class="msg" data-err="photo"></div></div>`;
   }
@@ -655,6 +724,10 @@ function fieldHTML(key,data,defs=F){
   return `<div class="field" data-f="${key}">${lbl}${ctl}${f.hint?`<div class="hint">${esc(f.hint)}</div>`:""}<div class="msg" data-err="${key}"></div></div>`;
 }
 function bindForm(root,data){
+  root.addEventListener("click",e=>{
+    const c=e.target.closest("[data-cam]"); if(!c) return;
+    openCamera(url=>setPhoto(root,data,url),()=>{ const fb=$("[data-cam-fallback]",root); if(fb) fb.click(); });
+  });
   root.addEventListener("input",e=>{ const t=e.target; if(!t.name || t.type==="checkbox") return; data[t.name]=t.value; });
   root.addEventListener("change",e=>{
     const t=e.target;
@@ -664,14 +737,50 @@ function bindForm(root,data){
     if(t.matches("[data-attach]")) onAttach(t,root,data);
   });
 }
+function setPhoto(root,data,url){
+  data.photo=url;
+  const prev=$("[data-photo-prev]",root); if(prev) prev.innerHTML=`<img alt="Your passport picture preview" src="${url}">`;
+  const m=$('[data-err="photo"]',root); if(m){ m.textContent=""; m.closest(".field").classList.remove("err"); }
+}
 async function onPhoto(input,root,data){
   const file=input.files[0]; if(!file) return;
-  try{
-    data.photo=await compressImage(file,{w:360,h:480,crop:true,quality:.8});
-    $("[data-photo-prev]",root).innerHTML=`<img alt="Your passport picture preview" src="${data.photo}">`;
-    const m=$('[data-err="photo"]',root); if(m){ m.textContent=""; m.closest(".field").classList.remove("err"); }
-  }catch(e){ toast(e.message); }
+  try{ setPhoto(root,data,await compressImage(file,{w:360,h:480,crop:true,quality:.8})); }
+  catch(e){ toast(e.message); }
   input.value="";
+}
+/* Live camera (phones and laptops, HTTPS). Falls back to the phone's own camera app. */
+function openCamera(onShot,useFallback){
+  if(!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia)){ useFallback(); return; }
+  let stream=null, facing="user";
+  const stop=()=>{ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } };
+  const bg=modal(`<h3>Take your passport picture</h3><div class="cam mirror" id="camBox"><video id="camVid" playsinline muted autoplay></video><div class="cam-guide"></div></div>
+    <div id="camMsg" class="hint" style="margin:.7rem 0">Centre your face in the outline, in good light.</div>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:space-between"><button class="btn btn-ghost btn-sm" id="camFlip" type="button">Switch camera</button><span style="display:flex;gap:.5rem"><button class="btn btn-ghost btn-sm" id="camNo" type="button">Cancel</button><button class="btn btn-primary btn-sm" id="camGo" type="button">Capture</button></span></div>`,stop);
+  const vid=$("#camVid",bg), box=$("#camBox",bg), msg=$("#camMsg",bg), go=$("#camGo",bg);
+  const mo=new MutationObserver(()=>{ if(!document.body.contains(bg)){ stop(); mo.disconnect(); } }); mo.observe(document.body,{childList:true});
+  const fail=e=>{
+    go.disabled=true;
+    const denied=/NotAllowed|Security/i.test((e&&e.name)||""), none=/NotFound|Overconstrained/i.test((e&&e.name)||"");
+    msg.innerHTML=`<div class="alert err" role="alert">${denied?"Camera access was blocked. Allow the camera for this site in your browser settings, or use your phone's camera app.":none?"No camera was found on this device. Use your phone's camera app or choose a picture from the gallery.":"The camera could not start. Use your phone's camera app or choose a picture from the gallery."}</div><button class="btn btn-primary btn-sm" id="camFb" type="button">Use phone camera app</button>`;
+    $("#camFb",bg).onclick=()=>{ bg.remove(); useFallback(); };
+  };
+  const start=async()=>{
+    stop();
+    try{
+      stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:facing},width:{ideal:1280},height:{ideal:1280}},audio:false});
+      vid.srcObject=stream; await vid.play(); box.classList.toggle("mirror",facing==="user"); go.disabled=false;
+    }catch(e){ fail(e); }
+  };
+  $("#camNo",bg).onclick=()=>bg.remove();
+  $("#camFlip",bg).onclick=()=>{ facing=facing==="user"?"environment":"user"; start(); };
+  go.onclick=()=>{
+    const vw=vid.videoWidth, vh=vid.videoHeight; if(!vw||!vh) return;
+    const tw=360, th=480, target=tw/th, cur=vw/vh; let sx=0,sy=0,sw=vw,sh=vh;
+    if(cur>target){ sw=vh*target; sx=(vw-sw)/2; } else { sh=vw/target; sy=(vh-sh)/2; }
+    const c=document.createElement("canvas"); c.width=tw; c.height=th; c.getContext("2d").drawImage(vid,sx,sy,sw,sh,0,0,tw,th);
+    const url=c.toDataURL("image/jpeg",.85); bg.remove(); onShot(url);
+  };
+  start();
 }
 async function onAttach(input,root,data){
   const file=input.files[0]; if(!file) return; const k=input.dataset.attach;
@@ -699,6 +808,56 @@ function validateFields(keys,data,root,defs=F){
 }
 
 /* =====================================================================
+   Membership card (drawn on a canvas, downloaded as PNG or PDF)
+   ===================================================================== */
+const loadImg=src=>new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i); i.onerror=rej; i.src=src; });
+function rr(x,X,Y,W,H,R){ x.beginPath(); x.moveTo(X+R,Y); x.arcTo(X+W,Y,X+W,Y+H,R); x.arcTo(X+W,Y+H,X,Y+H,R); x.arcTo(X,Y+H,X,Y,R); x.arcTo(X,Y,X+W,Y,R); x.closePath(); }
+async function makeCard(c){
+  try{ await Promise.all([document.fonts.load('600 46px "Cormorant Garamond"'),document.fonts.load('600 26px "Figtree"')]); }catch(e){}
+  const W=1011,H=638, cv=document.createElement("canvas"); cv.width=W; cv.height=H; const x=cv.getContext("2d"), ls=v=>{ if("letterSpacing" in x) x.letterSpacing=v; };
+  x.save(); rr(x,0,0,W,H,38); x.clip();
+  let g=x.createLinearGradient(0,0,W,H); g.addColorStop(0,"#0d0b33"); g.addColorStop(.55,"#23206b"); g.addColorStop(1,"#2f55a4"); x.fillStyle=g; x.fillRect(0,0,W,H);
+  g=x.createRadialGradient(W-80,60,10,W-80,60,380); g.addColorStop(0,"rgba(79,195,234,.45)"); g.addColorStop(1,"rgba(79,195,234,0)"); x.fillStyle=g; x.fillRect(0,0,W,H);
+  g=x.createRadialGradient(120,H,10,120,H,320); g.addColorStop(0,"rgba(247,227,58,.22)"); g.addColorStop(1,"rgba(247,227,58,0)"); x.fillStyle=g; x.fillRect(0,0,W,H);
+  x.fillStyle="#f7e33a"; x.fillRect(0,H-16,W,16);
+  const logos=await Promise.all([loadImg(LOGOS.church),loadImg(LOGOS.imcs)]);
+  logos.forEach((im,i)=>{ const X=40+i*112,Y=34; x.fillStyle="#fff"; rr(x,X,Y,100,100,22); x.fill(); x.drawImage(im,X+6,Y+6,88,88); });
+  x.fillStyle="#f7e33a"; x.font='700 22px Figtree, Arial, sans-serif'; ls("4px"); x.fillText("HOLY SPIRIT CATHOLIC CHURCH",274,68);
+  x.fillStyle="#fff"; x.font='600 54px "Cormorant Garamond", Georgia, serif'; ls("3px"); x.fillText("IMCS PAX ROMANA",274,118);
+  x.fillStyle="rgba(255,255,255,.85)"; x.font='600 24px Figtree, Arial, sans-serif'; ls("6px"); x.fillText("UEW-LOCAL · MEMBER",274,152); ls("0px");
+  const PX=40,PY=190,PW=230,PH=307;
+  x.save(); rr(x,PX,PY,PW,PH,22); x.clip(); x.fillStyle="#e8eefa"; x.fillRect(PX,PY,PW,PH);
+  if(c.photo){ try{ const im=await loadImg(c.photo), t=PW/PH, cur=im.width/im.height; let sx=0,sy=0,sw=im.width,sh=im.height; if(cur>t){ sw=im.height*t; sx=(im.width-sw)/2; } else { sh=im.width/t; sy=(im.height-sh)/2; } x.drawImage(im,sx,sy,sw,sh,PX,PY,PW,PH); }catch(e){} }
+  else { x.fillStyle="#2b2a83"; x.font='600 96px "Cormorant Garamond", Georgia, serif'; x.textAlign="center"; x.fillText((c.name||"?").trim().split(/\s+/).map(w=>w[0]).slice(0,2).join("").toUpperCase(),PX+PW/2,PY+PH/2+30); x.textAlign="left"; }
+  x.restore(); x.strokeStyle="rgba(255,255,255,.75)"; x.lineWidth=4; rr(x,PX,PY,PW,PH,22); x.stroke();
+  const lab=(t,X,Y)=>{ x.fillStyle="#4fc3ea"; x.font='700 18px Figtree, Arial, sans-serif'; ls("3px"); x.fillText(t,X,Y); ls("0px"); };
+  const fit=(t,X,Y,maxW,size,font)=>{ let s=size; do{ x.font=font(s); s-=2; }while(x.measureText(t).width>maxW&&s>20); x.fillText(t,X,Y); };
+  const DX=310, sans=s=>`600 ${s}px Figtree, Arial, sans-serif`;
+  lab("NAME",DX,222); x.fillStyle="#fff"; fit(c.name||"",DX,268,660,46,s=>`600 ${s}px "Cormorant Garamond", Georgia, serif`);
+  lab("PROGRAMME",DX,318); x.fillStyle="#fff"; fit(c.programme||"-",DX,352,660,28,sans);
+  lab("LEVEL",DX,404); x.fillStyle="#fff"; fit(String(c.level||"-"),DX,438,300,28,sans);
+  lab("SOCIETY",DX+330,404); x.fillStyle="#fff"; fit(c.society||"-",DX+330,438,330,28,sans);
+  lab("MEMBER ID",DX,496);
+  x.fillStyle="#f7e33a"; x.font='700 40px "Courier New", monospace'; ls("2px"); x.fillText(c.id||"",DX,540); ls("0px");
+  x.fillStyle="rgba(255,255,255,.75)"; x.font=sans(20); x.textAlign="right"; x.fillText("Member "+(c.year||new Date().getFullYear()),W-40,H-46); x.textAlign="left";
+  x.restore(); return cv;
+}
+async function downloadCard(c,fmt){
+  try{
+    const cv=await makeCard(c), base="IMCS-UEW-Card-"+(c.id||"member");
+    if(fmt==="pdf"){
+      if(!(window.jspdf&&window.jspdf.jsPDF)){ toast("The PDF tool is still loading. Try again in a moment."); return; }
+      const doc=new window.jspdf.jsPDF({orientation:"landscape",unit:"mm",format:[85.6,54]}); doc.addImage(cv.toDataURL("image/png"),"PNG",0,0,85.6,54);
+      await saveFile(base+".pdf",doc.output("arraybuffer"));
+    } else { const blob=await new Promise(r=>cv.toBlob(r,"image/png")); await saveFile(base+".png",await blob.arrayBuffer()); }
+  }catch(e){ toast("Could not create the card: "+(e.message||"try again")); }
+}
+function cardPreview(el,c){ makeCard(c).then(cv=>{ el.innerHTML=""; el.appendChild(cv); }).catch(()=>{ el.innerHTML=""; }); }
+const cardBtns=()=>`<div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:center"><button class="btn btn-primary" type="button" data-card="png">Download card (image)</button><button class="btn btn-ghost" type="button" data-card="pdf">PDF</button></div>`;
+function bindCardBtns(root,getCard){ $$("[data-card]",root).forEach(b=>b.onclick=()=>downloadCard(getCard(),b.dataset.card)); }
+function savedCard(){ try{ return JSON.parse(localStorage.getItem("imcs_card")||sessionStorage.getItem("imcs_card")||"null"); }catch(e){ return null; } }
+
+/* =====================================================================
    Registration wizard
    ===================================================================== */
 const reg={step:0,data:{},done:null,consent:false};
@@ -713,13 +872,15 @@ function renderRegister(){
       <h1 style="font-size:2.4rem">Registration complete</h1>
       <p style="color:var(--muted);margin:.5rem 0 0">Welcome, ${esc(reg.done.name.split(" ")[0])}. You are now on the IMCS UEW-Local register.</p>
       <div class="chip">${esc(reg.done.id)}</div>
-      <p style="margin:0 0 1.2rem;color:var(--muted);font-size:.92rem">Keep your member ID for your records.</p>
+      <p style="margin:0 0 .6rem;color:var(--muted);font-size:.92rem">Keep your member ID. Here is your membership card.</p>
+      <div class="card-preview" id="cardBox"><div class="hint" style="text-align:center">Preparing your card…</div></div>${cardBtns()}<div style="height:1.2rem"></div>
       <div class="alert info" style="text-align:left"><b>Next step: pay your annual dues.</b><br>It takes one minute and your details go straight to the admin.</div>
       <div style="display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center;margin-top:1.2rem">
         <a class="btn btn-primary" href="#/dues">Pay annual dues now</a>
         <a class="btn btn-ghost" href="#/" id="regLater">I'll pay later</a>
       </div></div>`;
     $("#regLater").onclick=()=>{ reg.done=null; reg.data={}; reg.step=0; reg.consent=false; };
+    cardPreview($("#cardBox"),reg.done.card); bindCardBtns(card,()=>reg.done.card);
     return;
   }
   const s=STEPS[reg.step], last=reg.step===STEPS.length-1;
@@ -731,7 +892,7 @@ function renderRegister(){
     <div class="msg" id="consentErr" style="color:var(--danger);font-size:.83rem;margin-top:.3rem"></div>`;
   }
   card.innerHTML=`
-    ${reg.step===0?`<div class="card-head"><h1>Become a Foundation Member</h1><p>Fill in each step. It takes about five minutes.</p></div>`:`<div class="card-head"><h1>IMCS Membership</h1></div>`}
+    ${reg.step===0&&!reg.data.fullName&&savedCard()?`<div class="alert info" style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;flex-wrap:wrap"><span>You already registered on this device.</span><button class="btn btn-primary btn-sm" type="button" id="myCardBtn">My membership card</button></div>`:""}${reg.step===0?`<div class="card-head"><h1>Become a Foundation Member</h1><p>Fill in each step. It takes about five minutes.</p></div>`:`<div class="card-head"><h1>IMCS Membership</h1></div>`}
     <div class="stepper" role="group" aria-label="Progress, step ${reg.step+1} of ${STEPS.length}">${dots}</div>
     <div class="step-title"><h2>${esc(s.title)}</h2><small>Step ${reg.step+1} of ${STEPS.length}</small></div>
     <div id="regFields">${body}</div>
@@ -740,6 +901,7 @@ function renderRegister(){
       ${reg.step>0?'<button class="btn btn-ghost" id="regBack" type="button">Back</button>':'<a class="btn btn-ghost" href="#/">Cancel</a>'}
       <button class="btn btn-primary" id="regNext" type="button">${last?"Submit registration":"Continue"}</button>
     </div>`;
+  const mcb=$("#myCardBtn"); if(mcb) mcb.onclick=()=>{ const c=savedCard(); const bg=modal(`<h3>Your membership card</h3><div class="card-preview" id="mcBox"><div class="hint" style="text-align:center">Preparing your card…</div></div>${cardBtns()}<div style="text-align:right;margin-top:1rem"><button class="btn btn-ghost btn-sm" id="mcClose" type="button">Close</button></div>`); cardPreview($("#mcBox",bg),c); bindCardBtns(bg,()=>c); $("#mcClose",bg).onclick=()=>bg.remove(); };
   const fields=$("#regFields");
   bindForm(fields,reg.data);
   fields.addEventListener("change",saveDraft);
@@ -754,7 +916,8 @@ function renderRegister(){
       const m={}; MEMBER_KEYS.forEach(k=>m[k]=Array.isArray(reg.data[k])?reg.data[k].join(", "):(reg.data[k]||""));
       m.photo=reg.data.photo;
       const r=await api("register",{member:m});
-      reg.done={id:r.id,name:m.fullName};
+      reg.done={id:r.id,name:m.fullName,card:{id:r.id,name:m.fullName,programme:m.programme,level:m.level,society:m.society,photo:reg.data.photo,year:new Date().getFullYear()}};
+      try{ localStorage.setItem("imcs_card",JSON.stringify(reg.done.card)); }catch(e){ try{ sessionStorage.setItem("imcs_card",JSON.stringify(reg.done.card)); }catch(x){} }
       try{ sessionStorage.setItem("imcs_last",JSON.stringify({id:r.id,fullName:m.fullName,phone:m.phone})); localStorage.removeItem("imcs_draft"); }catch(e){}
       renderRegister(); window.scrollTo({top:0,behavior:"smooth"});
     }catch(e){
@@ -794,9 +957,10 @@ function renderDues(){
       <div class="alert info" style="text-align:left">Keep your receipt number <b>${esc(d.id)}</b>. The admin will confirm your payment and issue your official receipt.</div>
       <div class="alert info" style="text-align:left">If your phone did not open the dialer, tap <b>Dial *170#</b> below, choose <b>Send money</b>, and pay <b>${esc(CFG.FINANCE_MOMO_NUMBER)}</b> (${esc(CFG.FINANCE_MOMO_NAME)}).</div>
       <div style="display:flex;gap:.7rem;flex-wrap:wrap;justify-content:center;margin-top:1rem">
-        ${dialBtn("btn-primary")}
+        ${dialBtn("btn-primary")}${savedCard()?'<button class="btn btn-ghost" id="dlCard" type="button">Membership card</button>':""}
         <a class="btn btn-ghost" href="#/" id="duesHome">Home</a></div></div>`;
     $("#duesHome").onclick=()=>{ dues.done=null; dues.data=null; };
+    const dc=$("#dlCard"); if(dc) dc.onclick=()=>downloadCard(savedCard(),"png");
     return;
   }
   if(!dues.data){
@@ -906,7 +1070,7 @@ function toggleHelp(){
 /* =====================================================================
    Admin
    ===================================================================== */
-const adm={pw:null,role:null,perms:{},tab:"overview",members:[],dues:[],help:[],ledger:[],debts:[],updates:[],finAccess:{},duesConfirmed:0,loginRole:"admin",notice:"",q:"",fLevel:"",fSoc:"",fGender:"",fDues:"",dq:"",dStatus:"",lType:"",timer:null,addData:{},updDraft:{}};
+const adm={pw:null,role:null,perms:{},tab:"overview",members:[],dues:[],help:[],ledger:[],debts:[],updates:[],finAccess:{},ushAccess:{},attendance:[],reportMonth:"",duesConfirmed:0,loginRole:"admin",notice:"",q:"",fLevel:"",fSoc:"",fGender:"",fDues:"",dq:"",dStatus:"",lType:"",timer:null,addData:{},updDraft:{}};
 try{ adm.pw=sessionStorage.getItem("imcs_pw"); adm.role=sessionStorage.getItem("imcs_role"); if(!adm.role) adm.pw=null; }catch(e){}
 const num = v=>Number(v)||0;
 const sortNew=(a,b)=>String(b.createdAt).localeCompare(String(a.createdAt));
@@ -936,10 +1100,10 @@ function renderAdmin(){
   const root=$("#adminRoot"), home=`<a class="btn btn-ghost btn-sm" href="#/">← Home</a>`;
   if(!adm.pw){
     $("#adminBarBtns").innerHTML=home;
-    const fin=adm.loginRole==="finance";
+    const R={admin:"Admin access to the full dashboard.",finance:"Finance Secretary access to church finances.",usher:"Usher access to Sunday attendance."};
     root.innerHTML=`<div class="login-card"><div class="lock"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg></div>
-      <h2 style="font-size:2rem">Sign in</h2><p style="color:var(--muted);margin:.3rem 0 1.1rem">${fin?"Finance Secretary access to church finances.":"Admin access to the full dashboard."}</p>
-      <div class="seg" role="tablist"><button type="button" data-role="admin" class="${fin?"":"on"}">Admin</button><button type="button" data-role="finance" class="${fin?"on":""}">Finance Secretary</button></div>
+      <h2 style="font-size:2rem">Sign in</h2><p style="color:var(--muted);margin:.3rem 0 1.1rem">${R[adm.loginRole]}</p>
+      <div class="seg" role="tablist">${[["admin","Admin"],["finance","Finance"],["usher","Usher"]].map(([k,l])=>`<button type="button" data-role="${k}" class="${adm.loginRole===k?"on":""}">${l}</button>`).join("")}</div>
       ${adm.notice?`<div class="alert err" role="alert" style="text-align:left">${esc(adm.notice)}</div>`:""}
       <div class="field" style="text-align:left"><label for="admPw">Password</label><input id="admPw" type="password" autocomplete="current-password"></div>
       <div id="admErr"></div><button class="btn btn-primary" id="admGo" style="width:100%">Sign in</button>
@@ -949,7 +1113,7 @@ function renderAdmin(){
       const pw=$("#admPw").value; if(!pw) return; const b=$("#admGo"); b.disabled=true; b.textContent="Checking…";
       try{
         const r=await api("adminLogin",{role:adm.loginRole,password:pw});
-        adm.pw=pw; adm.role=r.role; adm.perms=r.perms||{}; adm.notice=""; adm.tab=r.role==="finance"?"finance":"overview";
+        adm.pw=pw; adm.role=r.role; adm.perms=r.perms||{}; adm.notice=""; adm.tab=r.role==="finance"?"finance":r.role==="usher"?"attendance":"overview";
         try{ sessionStorage.setItem("imcs_pw",pw); sessionStorage.setItem("imcs_role",r.role); }catch(e){}
         await loadAdmin();
       }catch(e){ $("#admErr").innerHTML=`<div class="alert err" role="alert">${esc(e.message)}</div>`; b.disabled=false; b.textContent="Sign in"; }
@@ -957,34 +1121,38 @@ function renderAdmin(){
     $("#admGo").onclick=go; $("#admPw").onkeydown=e=>{ if(e.key==="Enter") go(); }; $("#admPw").focus();
     return;
   }
-  const isFin=adm.role==="finance";
-  $("#adminBarBtns").innerHTML=`<span style="display:inline-flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end">${home}${isFin?'<button class="btn btn-ghost btn-sm" id="myPw">Change password</button>':""}<button class="btn btn-primary btn-sm" id="admOut">Sign out</button></span>`;
+  const limited=adm.role!=="admin";
+  $("#adminBarBtns").innerHTML=`<span style="display:inline-flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end">${home}${limited?'<button class="btn btn-ghost btn-sm" id="myPw">Change password</button>':""}<button class="btn btn-primary btn-sm" id="admOut">Sign out</button></span>`;
   $("#admOut").onclick=()=>signOut();
-  if(isFin){
+  if(limited){
     $("#myPw").onclick=openMyPassword;
-    root.innerHTML=`<div class="admin-wrap">${LIVE?"":`<div class="demo-banner"><b>Demo mode.</b> Data is stored only in this browser.</div>`}<div class="alert info role-banner"><span>Signed in as <b>Finance Secretary</b>. You can manage church finances only.</span></div><div id="admBody"></div></div>`;
-    admFinance(); return;
+    const isFin=adm.role==="finance";
+    root.innerHTML=`<div class="admin-wrap">${LIVE?"":`<div class="demo-banner"><b>Demo mode.</b> Data is stored only in this browser.</div>`}<div class="alert info role-banner"><span>Signed in as <b>${isFin?"Finance Secretary":"Usher"}</b>. ${isFin?"You can manage church finances only.":"You can mark Sunday attendance only."}</span></div><div id="admBody"></div></div>`;
+    if(isFin) admFinance(); else { $("#admBody").innerHTML=`<div class="admin-head"><h2>Sunday attendance</h2></div><div id="attWrap"></div>`; attPanel($("#attWrap")); }
+    return;
   }
   const newHelp=adm.help.filter(h=>h.status==="New").length, pendDues=adm.dues.filter(d=>d.status!=="Confirmed").length;
-  const tabs=[["overview","Overview"],["members","Members ("+adm.members.length+")"],["add","Register member"],["dues","Dues"+(pendDues?` <span class="badge">${pendDues}</span>`:"")],["finance","Finances"],["updates","Updates"],["help","Help"+(newHelp?` <span class="badge">${newHelp}</span>`:"")],["settings","Settings"]];
+  const tabs=[["overview","Overview"],["members","Members ("+adm.members.length+")"],["add","Register member"],["dues","Dues"+(pendDues?` <span class="badge">${pendDues}</span>`:"")],["attendance","Attendance"],["reports","Reports"],["finance","Finances"],["updates","Updates"],["help","Help"+(newHelp?` <span class="badge">${newHelp}</span>`:"")],["settings","Settings"]];
   root.innerHTML=`<div class="admin-wrap">
     ${LIVE?"":`<div class="demo-banner"><b>Demo mode.</b> Data is stored only in this browser. Follow SETUP.md to connect the live backend so registrations and dues from every phone reach this dashboard.</div>`}
     <div class="tabs" role="tablist">${tabs.map(([k,l])=>`<button class="tab ${adm.tab===k?"on":""}" role="tab" data-tab="${k}">${l}</button>`).join("")}</div>
     <div id="admBody"></div></div>`;
   $$(".tab").forEach(t=>t.onclick=()=>{ adm.tab=t.dataset.tab; renderAdmin(); });
-  ({overview:admOverview,members:admMembers,add:admAdd,dues:admDues,finance:admFinance,updates:admUpdates,help:admHelp,settings:admSettings})[adm.tab]();
+  ({overview:admOverview,members:admMembers,add:admAdd,dues:admDues,attendance:admAttendance,reports:admReports,finance:admFinance,updates:admUpdates,help:admHelp,settings:admSettings})[adm.tab]();
 }
 async function loadAdmin(quiet){
   try{
     const r=await api("adminList",{password:adm.pw});
     adm.perms=r.perms||adm.perms;
-    if(adm.role==="finance"){ adm.duesConfirmed=r.duesConfirmed||0; adm.members=[]; adm.dues=[]; adm.help=[]; adm.updates=[]; }
+    if(adm.role==="finance"){ adm.duesConfirmed=r.duesConfirmed||0; adm.members=[]; adm.dues=[]; adm.help=[]; adm.updates=[]; adm.attendance=[]; }
+    else if(adm.role==="usher"){ adm.members=r.members||[]; adm.attendance=r.attendance||[]; adm.dues=[]; adm.help=[]; adm.updates=[]; adm.ledger=[]; adm.debts=[]; }
     else {
       adm.members=(r.members||[]).sort(sortNew); adm.dues=(r.dues||[]).sort(sortNew); adm.help=(r.help||[]).sort(sortNew);
-      adm.updates=(r.updates||[]).sort(sortNew); adm.finAccess=r.financeAccess||{};
+      adm.updates=(r.updates||[]).sort(sortNew); adm.attendance=r.attendance||[]; adm.finAccess=r.financeAccess||{}; adm.ushAccess=r.usherAccess||{};
     }
-    adm.ledger=(r.ledger||[]).sort((a,b)=>String(b.date||b.createdAt).localeCompare(String(a.date||a.createdAt))); adm.debts=(r.debts||[]).sort(sortNew);
-    clearInterval(adm.timer); adm.timer=setInterval(()=>{ if(location.hash==="#/admin" && !$(".modal-bg") && !["add","updates","settings"].includes(adm.tab) && !document.activeElement?.closest?.(".filters")) loadAdmin(true); },30000);
+    if(adm.role!=="usher"){ adm.ledger=(r.ledger||[]).sort((a,b)=>String(b.date||b.createdAt).localeCompare(String(a.date||a.createdAt))); adm.debts=(r.debts||[]).sort(sortNew); }
+    clearInterval(adm.timer); adm.timer=setInterval(()=>{ if(location.hash==="#/admin" && !$(".modal-bg") && !["add","updates","settings","reports"].includes(adm.tab) && !document.activeElement?.closest?.(".filters")) loadAdmin(true); },30000);
+    if(quiet && (adm.role==="usher"||adm.tab==="attendance")){ if(!att.busy && drawAttList && $("#attList")) drawAttList(); return; }
     if(!quiet || !$(".modal-bg")) renderAdmin();
   }catch(e){
     if(/password|suspended/i.test(e.message)) signOut(e.message);
@@ -1042,8 +1210,9 @@ function admMembers(){
   $("#fd").onchange=e=>{ adm.fDues=e.target.value; draw(); };
   $("#xlM").onclick=()=>exportExcel("members");
 }
-function modal(html){
+function modal(html,onClose){
   const bg=document.createElement("div"); bg.className="modal-bg"; bg.innerHTML=`<div class="modal" role="dialog" aria-modal="true">${html}</div>`;
+  if(onClose){ const rm=bg.remove.bind(bg); bg.remove=()=>{ try{ onClose(); }catch(e){} rm(); }; }
   bg.addEventListener("mousedown",e=>{ if(e.target===bg) bg.remove(); });
   document.body.appendChild(bg); return bg;
 }
@@ -1052,8 +1221,13 @@ function viewMember(id){
   const rows=MEMBER_KEYS.map(k=>`<dt>${esc(F[k].label.replace(/ \(.*\)/,""))}</dt><dd>${esc(m[k])||"—"}</dd>`).join("");
   const bg=modal(`<div class="member-top">${photoSrc(m)?`<img alt="Passport picture of ${esc(m.fullName)}" src="${esc(photoSrc(m))}">`:""}<div><h3 style="margin:0">${esc(m.fullName)}</h3><span class="chip" style="margin:.4rem 0 .3rem">${esc(m.id)}</span><div>Annual dues: ${duesPill(duesState(m))}</div><div style="color:var(--muted);font-size:.85rem">Joined ${fmtDT(m.createdAt)}${m.source?" · "+esc(m.source):""}</div></div></div>
     <div class="review"><dl>${rows}</dl></div>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end"><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(waLink(m.phone,"Hello "+m.fullName.split(" ")[0]+", this is IMCS Pax Romana UEW-Local."))}">WhatsApp</a><a class="btn btn-ghost btn-sm" href="mailto:${esc(m.email)}">Email</a><button class="btn btn-primary btn-sm" id="mClose">Close</button></div>`);
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end"><a class="btn btn-ghost btn-sm" target="_blank" rel="noopener" href="${esc(waLink(m.phone,"Hello "+m.fullName.split(" ")[0]+", this is IMCS Pax Romana UEW-Local."))}">WhatsApp</a><a class="btn btn-ghost btn-sm" href="mailto:${esc(m.email)}">Email</a><button class="btn btn-ghost btn-sm" id="mCard">Membership card</button><button class="btn btn-primary btn-sm" id="mClose">Close</button></div>`);
   $("#mClose",bg).onclick=()=>bg.remove();
+  $("#mCard",bg).onclick=async()=>{
+    let photo=m.photo&&String(m.photo).startsWith("data:")?m.photo:"";
+    if(!photo && m.photoId){ try{ const r=await api("memberPhoto",{password:adm.pw,id:m.id}); photo=r.photo||""; }catch(e){} }
+    downloadCard({id:m.id,name:m.fullName,programme:m.programme,level:m.level,society:m.society,photo,year:new Date(m.createdAt).getFullYear()||new Date().getFullYear()},"png");
+  };
 }
 const EDIT_DEFS={...F,photo:{...F.photo,required:false}};
 function editMember(id){
@@ -1198,6 +1372,169 @@ function openDebtPayment(id){
   };
 }
 
+/* ---------- Sunday attendance (admin + usher) ---------- */
+const att={date:"",q:"",filter:"all",busy:0};
+let drawAttList=null;
+function attCanMark(d){
+  if(!isSunday(d)) return "Pick a Sunday.";
+  if(d>ymd(new Date())) return "That Sunday has not come yet.";
+  if(adm.role==="usher" && !adm.perms.canBackdate && d!==lastSundayStr()) return "You can only mark the most recent Sunday.";
+  return "";
+}
+function attPanel(container){
+  if(!att.date) att.date=lastSundayStr();
+  container.innerHTML=`<div class="att-bar"><div class="field"><label for="attDate">Sunday</label><input id="attDate" type="date" value="${esc(att.date)}" max="${ymd(new Date())}"></div>
+    <div class="att-chips"><button type="button" class="btn btn-ghost btn-sm" data-sun="0">Latest Sunday</button><button type="button" class="btn btn-ghost btn-sm" data-sun="1">Previous Sunday</button></div></div>
+    <div id="attMsg"></div><div class="stats" id="attStats"></div>
+    <div class="filters"><input id="attQ" type="search" placeholder="Search name or member ID" aria-label="Search members" value="${esc(att.q)}"><select id="attF" aria-label="Filter"><option value="all">Everyone</option><option value="present" ${att.filter==="present"?"selected":""}>Present</option><option value="absent" ${att.filter==="absent"?"selected":""}>Not yet marked</option></select></div>
+    <div id="attList"></div>
+    <div class="section-h"><h3>Visitors</h3></div>
+    <div class="att-visit"><input id="visName" placeholder="Visitor's full name" aria-label="Visitor's full name"><button class="btn btn-primary btn-sm" id="visAdd" type="button">Add visitor</button></div><div id="visList"></div>`;
+  const recs=()=>adm.attendance.filter(a=>a.date===att.date);
+  const restore=(had,rec)=>{ if(had) adm.attendance.push(rec); else adm.attendance=adm.attendance.filter(a=>a.id!==rec.id); };
+  drawAttList=()=>{
+    if(!$("#attList")) return;
+    const r=recs(), pm=new Map(r.filter(a=>a.type!=="Visitor").map(a=>[a.memberId,a])), vs=r.filter(a=>a.type==="Visitor"), err=attCanMark(att.date), q=att.q.toLowerCase();
+    $("#attMsg").innerHTML=err?`<div class="alert err" role="alert">${esc(err)}</div>`:"";
+    $("#attStats").innerHTML=`<div class="stat"><b>${pm.size}</b><span>Members present</span></div><div class="stat"><b>${vs.length}</b><span>Visitors</span></div><div class="stat"><b>${Math.max(0,adm.members.length-pm.size)}</b><span>Not yet marked</span></div>`;
+    const list=adm.members.filter(m=>(!q||[m.fullName,m.id].some(v=>String(v||"").toLowerCase().includes(q)))&&(att.filter==="all"||(att.filter==="present")===pm.has(m.id))).sort((a,b)=>String(a.fullName).localeCompare(String(b.fullName)));
+    $("#attList").innerHTML=list.length?`<div class="att-list">${list.map(m=>`<button type="button" class="att-row ${pm.has(m.id)?"on":""}" data-m="${esc(m.id)}" ${err?"disabled":""} aria-pressed="${pm.has(m.id)}"><span class="att-tick">${pm.has(m.id)?"✓":""}</span><span class="att-name"><b>${esc(m.fullName)}</b><small>${esc(m.id)} · ${esc(m.level||"")}</small></span><span class="att-state">${pm.has(m.id)?"Present":"Mark present"}</span></button>`).join("")}</div>`:`<div class="empty">${adm.members.length?"No members match.":"No registered members yet."}</div>`;
+    $("#visList").innerHTML=vs.length?vs.map(v=>`<div class="att-vrow"><span>${esc(v.name)}</span><button class="btn btn-danger btn-sm" type="button" data-rv="${esc(v.id)}" ${err?"disabled":""}>Remove</button></div>`).join(""):'<p class="hint">No visitors recorded for this Sunday.</p>';
+    $$("[data-m]").forEach(b=>b.onclick=()=>toggle(b.dataset.m));
+    $$("[data-rv]").forEach(b=>b.onclick=()=>removeVisitor(b.dataset.rv));
+    if($("#attHist")) drawAttHist();
+  };
+  async function toggle(id){
+    const m=adm.members.find(x=>x.id===id); if(!m) return; const rid="A-"+att.date+"-"+id, had=adm.attendance.some(a=>a.id===rid);
+    const rec={id:rid,createdAt:new Date().toISOString(),date:att.date,memberId:id,name:m.fullName,type:"Member",markedBy:adm.role};
+    if(had) adm.attendance=adm.attendance.filter(a=>a.id!==rid); else adm.attendance.push(rec);
+    drawAttList(); att.busy++;
+    try{ await api("attendSet",{password:adm.pw,date:att.date,memberId:id,name:m.fullName,present:!had}); }
+    catch(e){ restore(had,rec); drawAttList(); toast(e.message); }
+    finally{ att.busy--; }
+  }
+  async function removeVisitor(id){
+    const rec=adm.attendance.find(a=>a.id===id); if(!rec) return;
+    adm.attendance=adm.attendance.filter(a=>a.id!==id); drawAttList(); att.busy++;
+    try{ await api("attendSet",{password:adm.pw,date:att.date,recordId:id,present:false}); }
+    catch(e){ adm.attendance.push(rec); drawAttList(); toast(e.message); }
+    finally{ att.busy--; }
+  }
+  $("#attDate").onchange=e=>{ att.date=e.target.value; drawAttList(); };
+  $("#attQ").oninput=e=>{ att.q=e.target.value; drawAttList(); };
+  $("#attF").onchange=e=>{ att.filter=e.target.value; drawAttList(); };
+  $$("[data-sun]",container).forEach(b=>b.onclick=()=>{ const d=new Date(lastSundayStr()+"T12:00:00"); if(b.dataset.sun==="1") d.setDate(d.getDate()-7); att.date=ymd(d); attPanel(container); });
+  $("#visAdd").onclick=async()=>{
+    const n=$("#visName").value.trim(); if(n.length<2) return toast("Enter the visitor's name.");
+    const err=attCanMark(att.date); if(err) return toast(err);
+    const b=$("#visAdd"); b.disabled=true;
+    try{ const r=await api("attendSet",{password:adm.pw,date:att.date,name:n,visitor:true,present:true}); adm.attendance.push({id:r.id,createdAt:new Date().toISOString(),date:att.date,memberId:"VISITOR",name:n,type:"Visitor",markedBy:adm.role}); $("#visName").value=""; drawAttList(); }
+    catch(e){ toast(e.message); }
+    finally{ b.disabled=false; }
+  };
+  drawAttList();
+}
+function drawAttHist(){
+  const by={}; adm.attendance.forEach(a=>{ const d=by[a.date]||(by[a.date]={date:a.date,m:0,v:0}); if(a.type==="Visitor") d.v++; else d.m++; });
+  const rows=Object.values(by).sort((a,b)=>b.date.localeCompare(a.date));
+  $("#attHist").innerHTML=rows.length?`<div class="tbl-wrap"><table><thead><tr><th>Sunday</th><th class="num">Members</th><th class="num">Visitors</th><th class="num">Total</th><th></th></tr></thead><tbody>${rows.map(r=>`<tr><td>${fmtDate(r.date)}</td><td class="num">${r.m}</td><td class="num">${r.v}</td><td class="num"><b>${r.m+r.v}</b></td><td class="acts"><button class="btn btn-ghost btn-sm" data-open="${esc(r.date)}">Open</button></td></tr>`).join("")}</tbody></table></div>`:'<div class="empty">No attendance recorded yet.</div>';
+  $$("#attHist [data-open]").forEach(b=>b.onclick=()=>{ att.date=b.dataset.open; attPanel($("#attWrap")); window.scrollTo({top:0,behavior:"smooth"}); });
+}
+function admAttendance(){
+  $("#admBody").innerHTML=`<div class="admin-head"><h2>Sunday attendance</h2><button class="btn btn-primary btn-sm" id="xlA">Export to Excel</button></div><div id="attWrap"></div><div class="section-h"><h3>Past Sundays</h3></div><div id="attHist"></div>`;
+  attPanel($("#attWrap")); $("#xlA").onclick=()=>exportExcel("attendance");
+}
+
+/* ---------- Monthly report (admin) ---------- */
+const monthLabel=ym=>{ const [y,m]=ym.split("-"); return new Date(+y,+m-1,1).toLocaleDateString("en-GB",{month:"long",year:"numeric"}); };
+function buildReport(ym){
+  const inM=d=>String(d||"").slice(0,7)===ym, before=d=>!!d&&String(d).slice(0,7)<ym, sum=(a,f)=>a.reduce((t,x)=>t+num(f(x)),0);
+  const newM=adm.members.filter(m=>inM(m.createdAt));
+  const duesC=adm.dues.filter(d=>d.status==="Confirmed"&&inM(d.paidOn)), duesP=adm.dues.filter(d=>d.status!=="Confirmed"&&inM(d.paidOn));
+  const led=adm.ledger.filter(l=>inM(l.date)), incL=led.filter(l=>l.type==="Income"), expL=led.filter(l=>l.type==="Expense");
+  const duesAmt=sum(duesC,d=>d.amount), incAmt=sum(incL,l=>l.amount), expAmt=sum(expL,l=>l.amount);
+  const opening=sum(adm.dues.filter(d=>d.status==="Confirmed"&&before(d.paidOn)),d=>d.amount)+sum(adm.ledger.filter(l=>l.type==="Income"&&before(l.date)),l=>l.amount)-sum(adm.ledger.filter(l=>l.type==="Expense"&&before(l.date)),l=>l.amount);
+  const expCat=Object.entries(expL.reduce((m,l)=>{ const k=l.category||"Other"; m[k]=(m[k]||0)+num(l.amount); return m; },{})).sort((a,b)=>b[1]-a[1]);
+  const at=adm.attendance.filter(a=>inM(a.date)), dates=[...new Set(at.map(a=>a.date))].sort();
+  const perDate=dates.map(d=>({date:d,members:at.filter(a=>a.date===d&&a.type!=="Visitor").length,visitors:at.filter(a=>a.date===d&&a.type==="Visitor").length}));
+  const memPres=sum(perDate,p=>p.members), avg=dates.length?Math.round(memPres/dates.length*10)/10:0;
+  const counts={}; at.filter(a=>a.type!=="Visitor").forEach(a=>{ counts[a.memberId]=(counts[a.memberId]||0)+1; });
+  const top=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,10).map(([id,n])=>({id,name:(adm.members.find(m=>m.id===id)||{}).fullName||id,n}));
+  const helpM=adm.help.filter(h=>inM(h.createdAt)), updM=adm.updates.filter(u=>inM(u.createdAt));
+  return {ym,label:monthLabel(ym),newM,duesC,duesP,duesAmt,duesPAmt:sum(duesP,d=>d.amount),led,incAmt,expAmt,expCat,opening,closing:opening+duesAmt+incAmt-expAmt,perDate,avg,top,sundays:dates.length,visitors:sum(perDate,p=>p.visitors),
+    perfect:dates.length?adm.members.filter(m=>(counts[m.id]||0)===dates.length).length:0,helpN:helpM.length,helpDone:helpM.filter(h=>h.status==="Resolved").length,updN:updM.length,debtNow:finance().debt,debtNew:sum(adm.debts.filter(d=>inM(d.date)),d=>d.amount),membersTotal:adm.members.length};
+}
+function admReports(){
+  if(!adm.reportMonth) adm.reportMonth=today().slice(0,7);
+  const r=buildReport(adm.reportMonth);
+  const tbl=(head,rows,empty)=>rows.length?`<div class="tbl-wrap"><table><thead><tr>${head.map(h=>`<th ${h.startsWith("#")?'class="num"':""}>${esc(h.replace(/^#/,""))}</th>`).join("")}</tr></thead><tbody>${rows.map(row=>`<tr>${row.map((c,i)=>`<td ${head[i].startsWith("#")?'class="num"':""}>${c}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`:`<div class="empty" style="padding:1rem">${empty}</div>`;
+  $("#admBody").innerHTML=`<div class="admin-head"><h2>Monthly report</h2><div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:center"><input type="month" id="repM" value="${esc(adm.reportMonth)}" max="${today().slice(0,7)}" aria-label="Month" style="border:1.5px solid var(--line);border-radius:10px;padding:.5rem .8rem;background:#fff"><button class="btn btn-primary btn-sm" id="repPdf">Download PDF</button><button class="btn btn-ghost btn-sm" id="repXl">Excel</button></div></div>
+    <p style="color:var(--muted);margin-top:-.4rem">${esc(r.label)}</p>
+    <div class="stats">
+      <div class="stat"><b>${r.newM.length}</b><span>New members (total ${r.membersTotal})</span></div>
+      <div class="stat"><b style="font-size:1.8rem;padding:.3rem 0">${money(r.duesAmt)}</b><span>Annual dues confirmed (${r.duesC.length})</span></div>
+      <div class="stat"><b style="font-size:1.8rem;padding:.3rem 0">${money(r.expAmt)}</b><span>Expenses</span></div>
+      <div class="stat hero-stat"><b class="${r.closing<0?"neg":""}" style="font-size:1.8rem;padding:.3rem 0">${money(r.closing)}</b><span>Closing balance</span></div>
+      <div class="stat"><b>${r.avg}</b><span>Average Sunday attendance (${r.sundays} Sundays)</span></div>
+    </div>
+    <div class="rep-sec"><h3>New members</h3>${tbl(["Name","Member ID","Level","Programme","Society"],r.newM.map(m=>[`<b>${esc(m.fullName)}</b>`,esc(m.id),esc(m.level),esc(m.programme),esc(m.society)]),"No new members this month.")}</div>
+    <div class="rep-sec"><h3>Annual dues</h3><p style="color:var(--muted);margin:0 0 .5rem">${r.duesC.length} confirmed (${money(r.duesAmt)}) · ${r.duesP.length} waiting for confirmation (${money(r.duesPAmt)})</p>${tbl(["Receipt no.","Name","#Amount","Status"],[...r.duesC,...r.duesP].map(d=>[esc(d.id),esc(d.fullName),money(d.amount),`<span class="pill ${d.status==="Confirmed"?"ok":"warn"}">${esc(d.status||"Pending")}</span>`]),"No dues paid this month.")}</div>
+    <div class="rep-sec"><h3>Finances</h3>${tbl(["Item","#Amount"],[["Opening balance",money(r.opening)],["Annual dues confirmed",money(r.duesAmt)],["Other income",money(r.incAmt)],["Expenses","− "+money(r.expAmt)],["<b>Closing balance</b>","<b>"+money(r.closing)+"</b>"],["Debt still owed (today)",money(r.debtNow)]],"")}
+      <div class="charts" style="margin-top:.8rem">${bars("Expenses by category",r.expCat,8,money)}</div></div>
+    <div class="rep-sec"><h3>Sunday attendance</h3>${tbl(["Sunday","#Members","#Visitors","#Total"],r.perDate.map(p=>[fmtDate(p.date),p.members,p.visitors,`<b>${p.members+p.visitors}</b>`]),"No attendance was recorded this month.")}
+      ${r.top.length?`<p style="color:var(--muted);margin:.7rem 0 .3rem">Most regular: ${r.top.map(t=>esc(t.name)+" ("+t.n+")").join(", ")}. ${r.perfect} member${r.perfect===1?"":"s"} attended every recorded Sunday.</p>`:""}</div>
+    <div class="rep-sec"><h3>Other</h3>${tbl(["Item","#Count"],[["Help messages received",r.helpN],["Help messages resolved",r.helpDone],["Updates posted on the home page",r.updN]],"")}</div>`;
+  $("#repM").onchange=e=>{ if(e.target.value){ adm.reportMonth=e.target.value; admReports(); } };
+  $("#repPdf").onclick=()=>reportPDF(buildReport(adm.reportMonth));
+  $("#repXl").onclick=()=>reportXlsx(buildReport(adm.reportMonth));
+}
+async function reportPDF(r){
+  if(!(window.jspdf&&window.jspdf.jsPDF)){ toast("The PDF tool is still loading. Check your connection and try again."); return; }
+  try{
+    const doc=new window.jspdf.jsPDF({unit:"mm",format:"a4"}), W=210; let y=0;
+    doc.setFillColor(26,23,80); doc.rect(0,0,W,36,"F");
+    try{ doc.addImage(LOGOS.church,"JPEG",10,5,26,26); doc.addImage(LOGOS.imcs,"JPEG",W-36,5,26,26); }catch(e){}
+    doc.setTextColor(255,255,255); doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.text("HOLY SPIRIT CATHOLIC CHURCH",W/2,12,{align:"center"});
+    doc.setFontSize(15); doc.text("IMCS PAX ROMANA · UEW-LOCAL",W/2,20,{align:"center"});
+    doc.setFontSize(10); doc.setTextColor(247,227,58); doc.text("MONTHLY REPORT · "+r.label.toUpperCase(),W/2,28,{align:"center"});
+    y=46;
+    const need=h=>{ if(y+h>284){ doc.addPage(); y=18; } };
+    const H=t=>{ need(16); y+=4; doc.setFont("helvetica","bold"); doc.setFontSize(12); doc.setTextColor(26,23,80); doc.text(t,14,y); y+=2; doc.setDrawColor(247,227,58); doc.setLineWidth(.7); doc.line(14,y,58,y); y+=6; };
+    const KV=(k,v,bold)=>{ need(7); doc.setFont("helvetica","normal"); doc.setFontSize(10); doc.setTextColor(90,95,128); doc.text(k,14,y); doc.setFont("helvetica",bold?"bold":"normal"); doc.setTextColor(20,19,58); doc.text(String(v),W-14,y,{align:"right"}); doc.setDrawColor(227,230,241); doc.setLineWidth(.2); doc.line(14,y+2,W-14,y+2); y+=7; };
+    const TB=(head,rows,widths,limit=40)=>{
+      const xs=[]; let cx=14; widths.forEach(w=>{ xs.push(cx); cx+=w; });
+      need(14); doc.setFillColor(232,238,250); doc.rect(14,y-4.5,W-28,7,"F"); doc.setFont("helvetica","bold"); doc.setFontSize(8.5); doc.setTextColor(43,42,131);
+      head.forEach((h,i)=>doc.text(h,xs[i],y)); y+=6;
+      doc.setFont("helvetica","normal"); doc.setTextColor(20,19,58);
+      rows.slice(0,limit).forEach(row=>{ need(7); row.forEach((c,i)=>doc.text(String(c==null?"":c).slice(0,Math.floor(widths[i]/1.75)),xs[i],y)); doc.setDrawColor(240,242,248); doc.line(14,y+2,W-14,y+2); y+=6.2; });
+      if(rows.length>limit){ need(7); doc.setTextColor(90,95,128); doc.text("... and "+(rows.length-limit)+" more (see the Excel report)",14,y); y+=6; }
+      if(!rows.length){ doc.setTextColor(90,95,128); doc.text("Nothing recorded.",14,y); y+=6; }
+      y+=2;
+    };
+    H("Summary");
+    KV("New members this month",r.newM.length); KV("Total registered members",r.membersTotal); KV("Annual dues confirmed",r.duesC.length+"  (GHS "+r.duesAmt.toFixed(2)+")");
+    KV("Total expenses","GHS "+r.expAmt.toFixed(2)); KV("Closing balance","GHS "+r.closing.toFixed(2),true); KV("Average Sunday attendance",r.avg+"  ("+r.sundays+" Sundays)");
+    H("New members"); TB(["Name","Member ID","Level","Society"],r.newM.map(m=>[m.fullName,m.id,m.level,m.society]),[62,52,24,44]);
+    H("Annual dues"); TB(["Receipt no.","Name","Amount (GHS)","Status"],[...r.duesC,...r.duesP].map(d=>[d.id,d.fullName,num(d.amount).toFixed(2),d.status||"Pending"]),[42,66,36,38]);
+    H("Finances"); KV("Opening balance","GHS "+r.opening.toFixed(2)); KV("Annual dues confirmed","GHS "+r.duesAmt.toFixed(2)); KV("Other income","GHS "+r.incAmt.toFixed(2)); KV("Expenses","GHS "+r.expAmt.toFixed(2)); KV("Closing balance","GHS "+r.closing.toFixed(2),true); KV("Debt still owed (today)","GHS "+r.debtNow.toFixed(2));
+    y+=2; TB(["Expense category","Amount (GHS)"],r.expCat.map(([k,v])=>[k,v.toFixed(2)]),[110,68]);
+    H("Sunday attendance"); TB(["Sunday","Members","Visitors","Total"],r.perDate.map(p=>[fmtDate(p.date),p.members,p.visitors,p.members+p.visitors]),[70,36,36,36]);
+    if(r.top.length){ KV("Most regular",r.top.slice(0,5).map(t=>t.name+" ("+t.n+")").join(", ").slice(0,70)); KV("Attended every recorded Sunday",r.perfect); }
+    H("Other"); KV("Help messages received",r.helpN); KV("Help messages resolved",r.helpDone); KV("Updates posted on the home page",r.updN);
+    need(12); doc.setFont("helvetica","normal"); doc.setFontSize(7.5); doc.setTextColor(90,95,128); doc.text("Generated "+new Date().toLocaleString("en-GB")+" · Debt shown is as of the day the report is generated.",14,y+4);
+    await saveFile("IMCS-UEW-Report-"+r.ym+".pdf",doc.output("arraybuffer"));
+  }catch(e){ toast("Could not create the report: "+e.message); }
+}
+async function reportXlsx(r){
+  await saveXlsx("IMCS-UEW-Report-"+r.ym+".xlsx",[
+    ["Summary",[{"Item":"Month","Value":r.label},{"Item":"New members","Value":r.newM.length},{"Item":"Total registered members","Value":r.membersTotal},{"Item":"Annual dues confirmed (GHS)","Value":r.duesAmt},{"Item":"Annual dues awaiting confirmation (GHS)","Value":r.duesPAmt},{"Item":"Opening balance (GHS)","Value":r.opening},{"Item":"Other income (GHS)","Value":r.incAmt},{"Item":"Expenses (GHS)","Value":r.expAmt},{"Item":"Closing balance (GHS)","Value":r.closing},{"Item":"Debt still owed today (GHS)","Value":r.debtNow},{"Item":"Sundays recorded","Value":r.sundays},{"Item":"Average member attendance","Value":r.avg},{"Item":"Visitors","Value":r.visitors},{"Item":"Help messages received","Value":r.helpN},{"Item":"Updates posted","Value":r.updN}]],
+    ["New members",r.newM.map(m=>({"Member ID":m.id,"Name":m.fullName,"Level":m.level,"Programme":m.programme,"Society":m.society,"Phone":m.phone,"Registered":fmtDate(m.createdAt)}))],
+    ["Dues",[...r.duesC,...r.duesP].map(d=>({"Receipt no.":d.id,"Name":d.fullName,"MoMo number":d.phone,"Amount (GHS)":num(d.amount),"Date paid":d.paidOn,"Status":d.status||"Pending"}))],
+    ["Ledger",r.led.map(l=>({"Date":l.date,"Type":l.type,"Category":l.category,"Description":l.description,"Paid to / from":l.party,"Amount (GHS)":num(l.amount)}))],
+    ["Attendance",r.perDate.map(p=>({"Sunday":p.date,"Members":p.members,"Visitors":p.visitors,"Total":p.members+p.visitors}))],
+  ]);
+}
+
 /* ---------- Password dialogs ---------- */
 function openPwModal(title,note,onSave){
   const defs={newPassword:{label:"New password",type:"password",required:true,hint:"At least 8 characters"},confirm:{label:"Confirm new password",type:"password",required:true}};
@@ -1219,23 +1556,29 @@ function openMyPassword(){
 }
 
 /* ---------- Settings (admin) ---------- */
+function accessCard(role,title,fa,key,label,note){
+  const susp=!!fa.suspended;
+  return `<div class="card set-card"><h3>${title}</h3>
+    <div class="row"><span>Status</span><b><span class="pill ${susp?"bad":"ok"}">${susp?"Suspended":"Active"}</span></b></div>
+    <div class="row"><span>Last sign-in</span><b>${fa.lastLogin?fmtDT(fa.lastLogin):"Never"}</b></div>
+    <label class="consent" style="margin:.8rem 0 0"><input type="checkbox" data-tgl="${role}" ${fa[key]?"checked":""}><span>${label}</span></label>
+    <div class="btns"><button class="btn ${susp?"btn-primary":"btn-danger"}" data-susp="${role}">${susp?"Reactivate access":"Suspend access"}</button><button class="btn btn-ghost" data-reset="${role}">Reset password</button></div>
+    <p style="color:var(--muted);font-size:.85rem;margin:.9rem 0 0">${note}</p></div>`;
+}
 function admSettings(){
-  const fa=adm.finAccess||{}, susp=!!fa.suspended;
+  const fa=adm.finAccess||{}, ua=adm.ushAccess||{};
   $("#admBody").innerHTML=`<div class="admin-head"><h2>Settings</h2></div>
   <div class="set-grid">
     <div class="card set-card"><h3>My admin password</h3><p style="color:var(--muted);margin-top:0">Change the password you use to sign in as admin.</p><button class="btn btn-primary" id="myPw2">Change my password</button></div>
-    <div class="card set-card"><h3>Finance Secretary access</h3>
-      <div class="row"><span>Status</span><b><span class="pill ${susp?"bad":"ok"}">${susp?"Suspended":"Active"}</span></b></div>
-      <div class="row"><span>Last sign-in</span><b>${fa.lastLogin?fmtDT(fa.lastLogin):"Never"}</b></div>
-      <label class="consent" style="margin:.8rem 0 0"><input type="checkbox" id="finDel" ${fa.canDelete?"checked":""}><span>Allow the Finance Secretary to delete entries</span></label>
-      <div class="btns"><button class="btn ${susp?"btn-primary":"btn-danger"}" id="finSusp">${susp?"Reactivate access":"Suspend access"}</button><button class="btn btn-ghost" id="finPw">Reset password</button></div>
-      <p style="color:var(--muted);font-size:.85rem;margin:.9rem 0 0">The Finance Secretary sees only the Finances tab. To sign in they choose <b>Finance Secretary</b> on the Admin page. Suspending signs them out within about 30 seconds and blocks new sign-ins.</p></div>
-  </div>`;
-  const setFin=async(patch,msg)=>{ try{ await api("adminFinanceSet",{password:adm.pw,patch}); toast(msg); loadAdmin(); }catch(e){ toast(e.message); } };
+    ${accessCard("finance","Finance Secretary access",fa,"canDelete","Allow deleting entries","Sees only the Finances screen. Signs in with the <b>Finance</b> tab on the Admin page.")}
+    ${accessCard("usher","Usher access",ua,"canBackdate","Allow marking past Sundays","Sees only Sunday attendance. Signs in with the <b>Usher</b> tab on the Admin page. If past Sundays are off, ushers can mark only the latest Sunday.")}
+  </div><p style="color:var(--muted);font-size:.85rem;margin-top:1rem">Suspending blocks new sign-ins and signs the person out within about 30 seconds.</p>`;
+  const setRole=async(target,patch,msg)=>{ try{ await api("adminRoleSet",{password:adm.pw,target,patch}); toast(msg); loadAdmin(); }catch(e){ toast(e.message); } };
+  const acc=r=>r==="usher"?ua:fa, nm=r=>r==="usher"?"Usher":"Finance";
   $("#myPw2").onclick=openMyPassword;
-  $("#finSusp").onclick=()=>setFin({suspended:!susp},susp?"Finance access reactivated":"Finance access suspended");
-  $("#finDel").onchange=e=>setFin({canDelete:e.target.checked},"Permission saved");
-  $("#finPw").onclick=()=>openPwModal("Reset Finance Secretary password","Give the new password to the Finance Secretary.",async pw=>{ await api("adminFinanceSet",{password:adm.pw,patch:{newPassword:pw}}); toast("Finance password reset"); });
+  $$("[data-susp]").forEach(b=>b.onclick=()=>{ const r=b.dataset.susp, on=!acc(r).suspended; setRole(r,{suspended:on},nm(r)+(on?" access suspended":" access reactivated")); });
+  $$("[data-tgl]").forEach(b=>b.onchange=()=>{ const r=b.dataset.tgl; setRole(r,r==="usher"?{canBackdate:b.checked}:{canDelete:b.checked},"Permission saved"); });
+  $$("[data-reset]").forEach(b=>b.onclick=()=>{ const r=b.dataset.reset; openPwModal("Reset "+nm(r)+" password","Give the new password to the "+(r==="usher"?"ushers":"Finance Secretary")+".",async pw=>{ await api("adminRoleSet",{password:adm.pw,target:r,patch:{newPassword:pw}}); toast(nm(r)+" password reset"); }); });
 }
 
 /* ---------- Updates (admin) ---------- */
@@ -1280,8 +1623,19 @@ function admHelp(){
 
 /* ---------- Excel export ---------- */
 function photoLink(m){ if(m.photoId) return "https://drive.google.com/file/d/"+m.photoId+"/view"; return m.photo?"(stored in dashboard)":""; }
+async function saveXlsx(filename,entries){
+  if(window.XLSX){
+    const wb=XLSX.utils.book_new();
+    entries.forEach(([n,rows])=>{ const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{"No data yet":""}]); const cols=Object.keys(rows[0]||{"No data yet":""}); ws["!cols"]=cols.map(c=>({wch:Math.min(40,Math.max(12,c.length+2,...rows.slice(0,50).map(r=>String(r[c]??"").length+2)))})); XLSX.utils.book_append_sheet(wb,ws,n.slice(0,31)); });
+    await saveFile(filename,XLSX.write(wb,{bookType:"xlsx",type:"array"})); return;
+  }
+  const [n,rows]=entries[0]; if(!rows.length) return toast("Nothing to export yet");
+  const cols=Object.keys(rows[0]), csv=[cols.join(","),...rows.map(r=>cols.map(c=>'"'+String(r[c]??"").replace(/"/g,'""')+'"').join(","))].join("\n");
+  await saveFile(filename.replace(/\.xlsx$/,"")+"-"+n+".csv",new Blob(["\ufeff"+csv],{type:"text/csv"})); toast("Excel library unavailable; downloaded CSV instead");
+}
 async function exportExcel(which){
-  const f=finance();
+  const f=finance(), stamp=today();
+  const sundays=[...new Set(adm.attendance.map(a=>a.date))].sort();
   const sets={
     members:["Members",adm.members.map(m=>{ const o={"Member ID":m.id,"Registered":fmtDT(m.createdAt)}; MEMBER_KEYS.forEach(k=>o[F[k].label]=m[k]||""); o["Annual dues"]=duesState(m); o["Passport picture"]=photoLink(m); o["Source"]=m.source||"Online form"; return o; })],
     dues:["Dues",adm.dues.map(d=>({"Receipt no.":d.id,"Submitted":fmtDT(d.createdAt),"Name":d.fullName,"MoMo number":d.phone,"Purpose":d.duesType||"Annual dues","Amount (GHS)":num(d.amount),"Date paid":d.paidOn,"Status":d.status||"Pending"}))],
@@ -1289,18 +1643,11 @@ async function exportExcel(which){
     ledger:["Ledger",adm.ledger.map(l=>({"Date":l.date,"Type":l.type,"Category":l.category,"Description":l.description,"Paid to / from":l.party,"Amount (GHS)":num(l.amount),"Receipt":l.receiptId?"https://drive.google.com/file/d/"+l.receiptId+"/view":(l.receipt?"(stored in dashboard)":"")}))],
     debts:["Debts",adm.debts.map(d=>({"Date":d.date,"Owed to":d.creditor,"Reason":d.description,"Amount (GHS)":num(d.amount),"Paid (GHS)":num(d.paid),"Remaining (GHS)":Math.max(0,num(d.amount)-num(d.paid)),"Repay by":d.dueDate,"Status":Math.max(0,num(d.amount)-num(d.paid))<=0?"Cleared":"Owing"}))],
     summary:["Finance summary",[{"Item":"Confirmed annual dues (GHS)","Amount":f.duesIn},{"Item":"Other income (GHS)","Amount":f.otherIn},{"Item":"Total expenses (GHS)","Amount":f.out},{"Item":"CURRENT BALANCE (GHS)","Amount":f.balance},{"Item":"Debt still owed (GHS)","Amount":f.debt},{"Item":"Balance after clearing debts (GHS)","Amount":f.net}]],
+    attendance:["Attendance",[...adm.attendance].sort((a,b)=>b.date.localeCompare(a.date)||String(a.name).localeCompare(String(b.name))).map(a=>({"Sunday":a.date,"Member ID":a.memberId,"Name":a.name,"Type":a.type||"Member","Marked by":a.markedBy}))],
+    attsum:["Attendance summary",adm.members.map(m=>{ const n=adm.attendance.filter(a=>a.memberId===m.id).length; return {"Member ID":m.id,"Name":m.fullName,"Level":m.level,"Sundays attended":n,"Sundays recorded":sundays.length,"Attendance %":sundays.length?Math.round(n/sundays.length*100):0}; })],
   };
-  const pick=which==="finance"?["summary","ledger","debts"]:which?[which]:["members","dues","summary","ledger","debts","help"];
-  const stamp=today();
-  if(window.XLSX){
-    const wb=XLSX.utils.book_new();
-    pick.forEach(k=>{ const [n,rows]=sets[k]; const ws=XLSX.utils.json_to_sheet(rows.length?rows:[{"No data yet":""}]); const cols=Object.keys(rows[0]||{"No data yet":""}); ws["!cols"]=cols.map(c=>({wch:Math.min(40,Math.max(12,c.length+2,...rows.slice(0,50).map(r=>String(r[c]??"").length+2)))})); XLSX.utils.book_append_sheet(wb,ws,n); });
-    const buf=XLSX.write(wb,{bookType:"xlsx",type:"array"});
-    await saveFile(`IMCS-UEW-${which||"all-data"}-${stamp}.xlsx`,buf); return;
-  }
-  const [n,rows]=sets[pick[0]]; if(!rows.length) return toast("Nothing to export yet");
-  const cols=Object.keys(rows[0]), csv=[cols.join(","),...rows.map(r=>cols.map(c=>'"'+String(r[c]??"").replace(/"/g,'""')+'"').join(","))].join("\n");
-  await saveFile(`IMCS-UEW-${n}-${stamp}.csv`,new Blob(["\ufeff"+csv],{type:"text/csv"})); toast("Excel library unavailable; downloaded CSV instead");
+  const pick=which==="finance"?["summary","ledger","debts"]:which==="attendance"?["attendance","attsum"]:which?[which]:["members","dues","summary","ledger","debts","attendance","attsum","help"];
+  await saveXlsx(`IMCS-UEW-${which||"all-data"}-${stamp}.xlsx`,pick.map(k=>sets[k]));
 }
 
 /* =====================================================================
